@@ -1,0 +1,509 @@
+# Kodi Media Center language file
+# Addon Name: Audio Enforcer
+# Addon id: service.audio.enforcer
+# Addon Provider: Skippy-McSkipface
+msgid ""
+msgstr ""
+"Project-Id-Version: Audio Enforcer\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-09 15:20+0100\n"
+"PO-Revision-Date: 2026-11-09 15:20+0100\n"
+"Last-Translator: \n"
+"Language-Team: English (United Kingdom)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_GB\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#32000"
+msgid "General"
+msgstr "General"
+
+msgctxt "#32001"
+msgid "Choose when Audio Enforcer runs, how it finds the original language, and whether it shows a message."
+msgstr "Choose when Audio Enforcer runs, how it finds the original language, and whether it shows a message."
+
+msgctxt "#32002"
+msgid "Service"
+msgstr "Service"
+
+msgctxt "#32003"
+msgid "Enable Audio Enforcer"
+msgstr "Enable Audio Enforcer"
+
+msgctxt "#32004"
+msgid "Select a preferred audio track when a video starts."
+msgstr "Select a preferred audio track when a video starts."
+
+msgctxt "#32005"
+msgid "Tracks"
+msgstr "Tracks"
+
+msgctxt "#32006"
+msgid "Avoid commentary tracks"
+msgstr "Avoid commentary tracks"
+
+msgctxt "#32007"
+msgid "Skip a track whose name says commentary, and try the next priority."
+msgstr "Skip a track whose name says commentary, and try the next priority."
+
+msgctxt "#32008"
+msgid "Original language"
+msgstr "Original language"
+
+msgctxt "#32009"
+msgid "Look up the original language"
+msgstr "Look up the original language"
+
+msgctxt "#32010"
+msgid "Whenever original language is selected, check TheMovieDB Helper. If it names a different language than the file, TheMovieDB Helper is used."
+msgstr "Whenever original language is selected, check TheMovieDB Helper. If it names a different language than the file, TheMovieDB Helper is used."
+
+msgctxt "#32011"
+msgid "TheMovieDB API key"
+msgstr "TheMovieDB API key"
+
+msgctxt "#32012"
+msgid "Optional. Your key is used first. Leave this empty to use the key from an installed TheMovieDB Helper."
+msgstr "Optional. Your key is used first. Leave this empty to use the key from an installed TheMovieDB Helper."
+
+msgctxt "#32013"
+msgid "On screen"
+msgstr "On screen"
+
+msgctxt "#32014"
+msgid "Show the chosen audio"
+msgstr "Show the chosen audio"
+
+msgctxt "#32015"
+msgid "Display a short message naming the audio track that was selected."
+msgstr "Display a short message naming the audio track that was selected."
+
+msgctxt "#32020"
+msgid "Languages"
+msgstr "Languages"
+
+msgctxt "#32021"
+msgid "Up to five choices. The first one that has an allowed track is used."
+msgstr "Up to five choices. The first one that has an allowed track is used."
+
+msgctxt "#32022"
+msgid "Priority 1"
+msgstr "Priority 1"
+
+msgctxt "#32023"
+msgid "Priority 2"
+msgstr "Priority 2"
+
+msgctxt "#32024"
+msgid "Priority 3"
+msgstr "Priority 3"
+
+msgctxt "#32025"
+msgid "Priority 4"
+msgstr "Priority 4"
+
+msgctxt "#32026"
+msgid "Priority 5"
+msgstr "Priority 5"
+
+msgctxt "#32027"
+msgid "Language"
+msgstr "Language"
+
+msgctxt "#32028"
+msgid "Off, original language, the default track, Kodi's audio language, or a language from the list."
+msgstr "Off, original language, the default track, Kodi's audio language, or a language from the list."
+
+msgctxt "#32029"
+msgid "Language"
+msgstr "Language"
+
+msgctxt "#32030"
+msgid "Pick the language for this priority. The last row types a name or code that is not in the list."
+msgstr "Pick the language for this priority. The last row types a name or code that is not in the list."
+
+msgctxt "#32040"
+msgid "Playback"
+msgstr "Playback"
+
+msgctxt "#32041"
+msgid "Trailers and extras can follow the main list, use one language, or stay as they are."
+msgstr "Trailers and extras can follow the main list, use one language, or stay as they are."
+
+msgctxt "#32042"
+msgid "Trailers"
+msgstr "Trailers"
+
+msgctxt "#32043"
+msgid "Trailer audio"
+msgstr "Trailer audio"
+
+msgctxt "#32044"
+msgid "What to play when the file is a trailer."
+msgstr "What to play when the file is a trailer."
+
+msgctxt "#32045"
+msgid "Trailer language"
+msgstr "Trailer language"
+
+msgctxt "#32046"
+msgid "Pick the language for trailers."
+msgstr "Pick the language for trailers."
+
+msgctxt "#32047"
+msgid "Custom trailer language"
+msgstr "Custom trailer language"
+
+msgctxt "#32048"
+msgid "A language name or code, such as Welsh or cym."
+msgstr "A language name or code, such as Welsh or cym."
+
+msgctxt "#32049"
+msgid "Extras"
+msgstr "Extras"
+
+msgctxt "#32050"
+msgid "Extra audio"
+msgstr "Extra audio"
+
+msgctxt "#32051"
+msgid "What to play for samples, featurettes, interviews, deleted scenes, and behind-the-scenes videos."
+msgstr "What to play for samples, featurettes, interviews, deleted scenes, and behind-the-scenes videos."
+
+msgctxt "#32052"
+msgid "Extra language"
+msgstr "Extra language"
+
+msgctxt "#32053"
+msgid "Pick the language for extras."
+msgstr "Pick the language for extras."
+
+msgctxt "#32054"
+msgid "Custom extra language"
+msgstr "Custom extra language"
+
+msgctxt "#32055"
+msgid "A language name or code, such as Welsh or cym."
+msgstr "A language name or code, such as Welsh or cym."
+
+msgctxt "#32060"
+msgid "Shows"
+msgstr "Shows"
+
+msgctxt "#32061"
+msgid "A show or movie can keep its own audio choice."
+msgstr "A show or movie can keep its own audio choice."
+
+msgctxt "#32062"
+msgid "Manage show rules"
+msgstr "Manage show rules"
+
+msgctxt "#32063"
+msgid "Add, change, or remove a language for one show or movie."
+msgstr "Add, change, or remove a language for one show or movie."
+
+msgctxt "#32070"
+msgid "Add the title that is playing"
+msgstr "Add the title that is playing"
+
+msgctxt "#32071"
+msgid "Search for a show or movie"
+msgstr "Search for a show or movie"
+
+msgctxt "#32072"
+msgid "Remove all"
+msgstr "Remove all"
+
+msgctxt "#32073"
+msgid "Show rules"
+msgstr "Show rules"
+
+msgctxt "#32074"
+msgid "Remove every show rule?"
+msgstr "Remove every show rule?"
+
+msgctxt "#32075"
+msgid "Nothing is playing"
+msgstr "Nothing is playing"
+
+msgctxt "#32076"
+msgid "Play a video, or search for the title."
+msgstr "Play a video, or search for the title."
+
+msgctxt "#32077"
+msgid "Show or movie title"
+msgstr "Show or movie title"
+
+msgctxt "#32078"
+msgid "Language"
+msgstr "Language"
+
+msgctxt "#32079"
+msgid "Remove"
+msgstr "Remove"
+
+msgctxt "#32080"
+msgid "Set audio language for this title"
+msgstr "Set audio language for this title"
+
+msgctxt "#32081"
+msgid "Change language"
+msgstr "Change language"
+
+msgctxt "#32082"
+msgid "Remove the rule for this title?"
+msgstr "Remove the rule for this title?"
+
+msgctxt "#32083"
+msgid "Saved"
+msgstr "Saved"
+
+msgctxt "#32084"
+msgid "Removed"
+msgstr "Removed"
+
+msgctxt "#32085"
+msgid "Custom language"
+msgstr "Custom language"
+
+msgctxt "#32086"
+msgid "That title is empty."
+msgstr "That title is empty."
+
+msgctxt "#32087"
+msgid "Original language"
+msgstr "Original language"
+
+msgctxt "#32088"
+msgid "Default track"
+msgstr "Default track"
+
+msgctxt "#32089"
+msgid "Kodi audio language"
+msgstr "Kodi audio language"
+
+msgctxt "#32090"
+msgid "Leave unchanged"
+msgstr "Leave unchanged"
+
+msgctxt "#32091"
+msgid "Select the show or movie"
+msgstr "Select the show or movie"
+
+msgctxt "#32092"
+msgid "No matching show or movie."
+msgstr "No matching show or movie."
+
+msgctxt "#32099"
+msgid "TV"
+msgstr "TV"
+
+msgctxt "#32093"
+msgid "Use the main priorities"
+msgstr "Use the main priorities"
+
+msgctxt "#32094"
+msgid "Specific language"
+msgstr "Specific language"
+
+msgctxt "#32095"
+msgid "Off"
+msgstr "Off"
+
+msgctxt "#32096"
+msgid "Custom"
+msgstr "Custom"
+
+msgctxt "#32097"
+msgid "Cancel"
+msgstr "Cancel"
+
+msgctxt "#32098"
+msgid "Type a language"
+msgstr "Type a language"
+
+msgctxt "#32150"
+msgid "Custom audio language"
+msgstr "Custom audio language"
+
+msgctxt "#32151"
+msgid "Movie"
+msgstr "Movie"
+
+msgctxt "#32152"
+msgid "In your library"
+msgstr "In your library"
+
+msgctxt "#32100"
+msgid "Arabic"
+msgstr "Arabic"
+
+msgctxt "#32101"
+msgid "Bulgarian"
+msgstr "Bulgarian"
+
+msgctxt "#32102"
+msgid "Catalan"
+msgstr "Catalan"
+
+msgctxt "#32103"
+msgid "Chinese"
+msgstr "Chinese"
+
+msgctxt "#32104"
+msgid "Chinese (Simplified)"
+msgstr "Chinese (Simplified)"
+
+msgctxt "#32105"
+msgid "Chinese (Traditional)"
+msgstr "Chinese (Traditional)"
+
+msgctxt "#32106"
+msgid "Croatian"
+msgstr "Croatian"
+
+msgctxt "#32107"
+msgid "Czech"
+msgstr "Czech"
+
+msgctxt "#32108"
+msgid "Danish"
+msgstr "Danish"
+
+msgctxt "#32109"
+msgid "Dutch"
+msgstr "Dutch"
+
+msgctxt "#32110"
+msgid "English"
+msgstr "English"
+
+msgctxt "#32111"
+msgid "Estonian"
+msgstr "Estonian"
+
+msgctxt "#32112"
+msgid "Finnish"
+msgstr "Finnish"
+
+msgctxt "#32113"
+msgid "French"
+msgstr "French"
+
+msgctxt "#32114"
+msgid "German"
+msgstr "German"
+
+msgctxt "#32115"
+msgid "Greek"
+msgstr "Greek"
+
+msgctxt "#32116"
+msgid "Hebrew"
+msgstr "Hebrew"
+
+msgctxt "#32117"
+msgid "Hindi"
+msgstr "Hindi"
+
+msgctxt "#32118"
+msgid "Hungarian"
+msgstr "Hungarian"
+
+msgctxt "#32119"
+msgid "Icelandic"
+msgstr "Icelandic"
+
+msgctxt "#32120"
+msgid "Indonesian"
+msgstr "Indonesian"
+
+msgctxt "#32121"
+msgid "Italian"
+msgstr "Italian"
+
+msgctxt "#32122"
+msgid "Japanese"
+msgstr "Japanese"
+
+msgctxt "#32123"
+msgid "Korean"
+msgstr "Korean"
+
+msgctxt "#32124"
+msgid "Latvian"
+msgstr "Latvian"
+
+msgctxt "#32125"
+msgid "Lithuanian"
+msgstr "Lithuanian"
+
+msgctxt "#32126"
+msgid "Malay"
+msgstr "Malay"
+
+msgctxt "#32127"
+msgid "Norwegian"
+msgstr "Norwegian"
+
+msgctxt "#32128"
+msgid "Persian"
+msgstr "Persian"
+
+msgctxt "#32129"
+msgid "Polish"
+msgstr "Polish"
+
+msgctxt "#32130"
+msgid "Portuguese"
+msgstr "Portuguese"
+
+msgctxt "#32131"
+msgid "Portuguese (Brazil)"
+msgstr "Portuguese (Brazil)"
+
+msgctxt "#32132"
+msgid "Romanian"
+msgstr "Romanian"
+
+msgctxt "#32133"
+msgid "Russian"
+msgstr "Russian"
+
+msgctxt "#32134"
+msgid "Serbian"
+msgstr "Serbian"
+
+msgctxt "#32135"
+msgid "Slovak"
+msgstr "Slovak"
+
+msgctxt "#32136"
+msgid "Slovenian"
+msgstr "Slovenian"
+
+msgctxt "#32137"
+msgid "Spanish"
+msgstr "Spanish"
+
+msgctxt "#32138"
+msgid "Swedish"
+msgstr "Swedish"
+
+msgctxt "#32139"
+msgid "Thai"
+msgstr "Thai"
+
+msgctxt "#32140"
+msgid "Turkish"
+msgstr "Turkish"
+
+msgctxt "#32141"
+msgid "Ukrainian"
+msgstr "Ukrainian"
+
+msgctxt "#32142"
+msgid "Vietnamese"
+msgstr "Vietnamese"

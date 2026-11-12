@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<settings version="1">
+    <section id="service.audio.enforcer">
+        <category id="general" label="32000" help="32001">
+            <group id="1" label="32002">
+                <setting id="enabled" type="boolean" label="32003" help="32004">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle" />
+                </setting>
+            </group>
+            <group id="2" label="32005">
+                <setting id="avoid_commentary" type="boolean" label="32006" help="32007">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle" />
+                </setting>
+            </group>
+            <group id="3" label="32008">
+                <setting id="use_tmdb" type="boolean" label="32009" help="32010">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle" />
+                </setting>
+                <setting id="tmdb_apikey" type="string" label="32011" help="32012">
+                    <level>0</level>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <dependencies>
+                        <dependency type="enable" setting="use_tmdb">true</dependency>
+                    </dependencies>
+                    <control type="edit" format="string" />
+                </setting>
+            </group>
+            <group id="4" label="32013">
+                <setting id="notify" type="boolean" label="32014" help="32015">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle" />
+                </setting>
+            </group>
+        </category>
+        <category id="languages" label="32020" help="32021">
+            <group id="1" label="32022">
+                <setting id="lang_1" type="string" label="32027" help="32028">
+                    <level>0</level>
+                    <default>original</default>
+                    <constraints>
+                        <options>
+                            <option label="Off">off</option>
+                            <option label="Original language">original</option>
+                            <option label="Default track">default</option>
+                            <option label="Kodi audio language">kodi</option>
+                            <option label="Arabic">ara</option>
+                            <option label="Bulgarian">bul</option>
+                            <option label="Catalan">cat</option>
+                            <option label="Chinese">chi</option>
+                            <option label="Chinese (Simplified)">zhs</option>
+                            <option label="Chinese (Traditional)">zht</option>
+                            <option label="Croatian">hrv</option>
+                            <option label="Czech">cze</option>
+                            <option label="Danish">dan</option>
+                            <option label="Dutch">dut</option>
+                            <option label="English">eng</option>
+                            <option label="Estonian">est</option>
+                            <option label="Finnish">fin</option>
+                            <option label="French">fre</option>
+                            <option label="German">ger</option>
+                            <option label="Greek">gre</option>
+                            <option label="Hebrew">heb</option>
+                            <option label="Hindi">hin</option>
+                            <option label="Hungarian">hun</option>
+                            <option label="Icelandic">ice</option>
+                            <option label="Indonesian">ind</option>
+                            <option label="Italian">ita</option>
+                            <option label="Japanese">jpn</option>
+                            <option label="Korean">kor</option>
+                            <option label="Latvian">lav</option>
+                            <option label="Lithuanian">lit</option>
+                            <option label="Malay">may</option>
+                            <option label="Norwegian">nor</option>
+                            <option label="Persian">per</option>
+                            <option label="Polish">pol</option>
+                            <option label="Portuguese">por</option>
+                            <option label="Portuguese (Brazil)">pob</option>
+                            <option label="Romanian">rum</option>
+                            <option label="Russian">rus</option>
+                            <option label="Serbian">srp</option>
+                            <option label="Slovak">slo</option>
+                            <option label="Slovenian">slv</option>
+                            <option label="Spanish">spa</option>
+                            <option label="Swedish">swe</option>
+                            <option label="Thai">tha</option>
+                            <option label="Turkish">tur</option>
+                            <option label="Ukrainian">ukr</option>
+                            <option label="Vietnamese">vie</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+            <group id="2" label="32023">
+                <setting id="lang_2" type="string" label="32027" help="32028">
+                    <level>0</level>
+                    <default>default</default>
+                    <constraints>
+                        <options>
+                            <option label="Off">off</option>
+                            <option label="Original language">original</option>
+                            <option label="Default track">default</option>
+                            <option label="Kodi audio language">kodi</option>
+                            <option label="Arabic">ara</option>
+                            <option label="Bulgarian">bul</option>
+                            <option label="Catalan">cat</option>
+                            <option label="Chinese">chi</option>
+                            <option label="Chinese (Simplified)">zhs</option>
+                            <option label="Chinese (Traditional)">zht</option>
+                            <option label="Croatian">hrv</option>
+                            <option label="Czech">cze</option>
+                            <option label="Danish">dan</option>
+                            <option label="Dutch">dut</option>
+                            <option label="English">eng</option>
+                            <option label="Estonian">est</option>
+                            <option label="Finnish">fin</option>
+                            <option label="French">fre</option>
+                            <option label="German">ger</option>
+                            <option label="Greek">gre</option>
+                            <option label="Hebrew">heb</option>
+                            <option label="Hindi">hin</option>
+                            <option label="Hungarian">hun</option>
+                            <option label="Icelandic">ice</option>
+                            <option label="Indonesian">ind</option>
+                            <option label="Italian">ita</option>
+                            <option label="Japanese">jpn</option>
+                            <option label="Korean">kor</option>
+                            <option label="Latvian">lav</option>
+                            <option label="Lithuanian">lit</option>
+                            <option label="Malay">may</option>
+                            <option label="Norwegian">nor</option>
+                            <option label="Persian">per</option>
+                            <option label="Polish">pol</option>
+                            <option label="Portuguese">por</option>
+                            <option label="Portuguese (Brazil)">pob</option>
+                            <option label="Romanian">rum</option>
+                            <option label="Russian">rus</option>
+                            <option label="Serbian">srp</option>
+                            <option label="Slovak">slo</option>
+                            <option label="Slovenian">slv</option>
+                            <option label="Spanish">spa</option>
+                            <option label="Swedish">swe</option>
+                            <option label="Thai">tha</option>
+                            <option label="Turkish">tur</option>
+                            <option label="Ukrainian">ukr</option>
+                            <option label="Vietnamese">vie</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+            <group id="3" label="32024">
+                <setting id="lang_3" type="string" label="32027" help="32028">
+                    <level>0</level>
+                    <default>off</default>
+                    <constraints>
+                        <options>
+                            <option label="Off">off</option>
+                            <option label="Original language">original</option>
+                            <option label="Default track">default</option>
+                            <option label="Kodi audio language">kodi</option>
+                            <option label="Arabic">ara</option>
+                            <option label="Bulgarian">bul</option>
+                            <option label="Catalan">cat</option>
+                            <option label="Chinese">chi</option>
+                            <option label="Chinese (Simplified)">zhs</option>
+                            <option label="Chinese (Traditional)">zht</option>
+                            <option label="Croatian">hrv</option>
+                            <option label="Czech">cze</option>
+                            <option label="Danish">dan</option>
+                            <option label="Dutch">dut</option>
+                            <option label="English">eng</option>
+                            <option label="Estonian">est</option>
+                            <option label="Finnish">fin</option>
+                            <option label="French">fre</option>
+                            <option label="German">ger</option>
+                            <option label="Greek">gre</option>
+                            <option label="Hebrew">heb</option>
+                            <option label="Hindi">hin</option>
+                            <option label="Hungarian">hun</option>
+                            <option label="Icelandic">ice</option>
+                            <option label="Indonesian">ind</option>
+                            <option label="Italian">ita</option>
+                            <option label="Japanese">jpn</option>
+                            <option label="Korean">kor</option>
+                            <option label="Latvian">lav</option>
+                            <option label="Lithuanian">lit</option>
+                            <option label="Malay">may</option>
+                            <option label="Norwegian">nor</option>
+                            <option label="Persian">per</option>
+                            <option label="Polish">pol</option>
+                            <option label="Portuguese">por</option>
+                            <option label="Portuguese (Brazil)">pob</option>
+                            <option label="Romanian">rum</option>
+                            <option label="Russian">rus</option>
+                            <option label="Serbian">srp</option>
+                            <option label="Slovak">slo</option>
+                            <option label="Slovenian">slv</option>
+                            <option label="Spanish">spa</option>
+                            <option label="Swedish">swe</option>
+                            <option label="Thai">tha</option>
+                            <option label="Turkish">tur</option>
+                            <option label="Ukrainian">ukr</option>
+                            <option label="Vietnamese">vie</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+            <group id="4" label="32025">
+                <setting id="lang_4" type="string" label="32027" help="32028">
+                    <level>0</level>
+                    <default>off</default>
+                    <constraints>
+                        <options>
+                            <option label="Off">off</option>
+                            <option label="Original language">original</option>
+                            <option label="Default track">default</option>
+                            <option label="Kodi audio language">kodi</option>
+                            <option label="Arabic">ara</option>
+                            <option label="Bulgarian">bul</option>
+                            <option label="Catalan">cat</option>
+                            <option label="Chinese">chi</option>
+                            <option label="Chinese (Simplified)">zhs</option>
+                            <option label="Chinese (Traditional)">zht</option>
+                            <option label="Croatian">hrv</option>
+                            <option label="Czech">cze</option>
+                            <option label="Danish">dan</option>
+                            <option label="Dutch">dut</option>
+                            <option label="English">eng</option>
+                            <option label="Estonian">est</option>
+                            <option label="Finnish">fin</option>
+                            <option label="French">fre</option>
+                            <option label="German">ger</option>
+                            <option label="Greek">gre</option>
+                            <option label="Hebrew">heb</option>
+                            <option label="Hindi">hin</option>
+                            <option label="Hungarian">hun</option>
+                            <option label="Icelandic">ice</option>
+                            <option label="Indonesian">ind</option>
+                            <option label="Italian">ita</option>
+                            <option label="Japanese">jpn</option>
+                            <option label="Korean">kor</option>
+                            <option label="Latvian">lav</option>
+                            <option label="Lithuanian">lit</option>
+                            <option label="Malay">may</option>
+                            <option label="Norwegian">nor</option>
+                            <option label="Persian">per</option>
+                            <option label="Polish">pol</option>
+                            <option label="Portuguese">por</option>
+                            <option label="Portuguese (Brazil)">pob</option>
+                            <option label="Romanian">rum</option>
+                            <option label="Russian">rus</option>
+                            <option label="Serbian">srp</option>
+                            <option label="Slovak">slo</option>
+                            <option label="Slovenian">slv</option>
+                            <option label="Spanish">spa</option>
+                            <option label="Swedish">swe</option>
+                            <option label="Thai">tha</option>
+                            <option label="Turkish">tur</option>
+                            <option label="Ukrainian">ukr</option>
+                            <option label="Vietnamese">vie</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+            <group id="5" label="32026">
+                <setting id="lang_5" type="string" label="32027" help="32028">
+                    <level>0</level>
+                    <default>off</default>
+                    <constraints>
+                        <options>
+                            <option label="Off">off</option>
+                            <option label="Original language">original</option>
+                            <option label="Default track">default</option>
+                            <option label="Kodi audio language">kodi</option>
+                            <option label="Arabic">ara</option>
+                            <option label="Bulgarian">bul</option>
+                            <option label="Catalan">cat</option>
+                            <option label="Chinese">chi</option>
+                            <option label="Chinese (Simplified)">zhs</option>
+                            <option label="Chinese (Traditional)">zht</option>
+                            <option label="Croatian">hrv</option>
+                            <option label="Czech">cze</option>
+                            <option label="Danish">dan</option>
+                            <option label="Dutch">dut</option>
+                            <option label="English">eng</option>
+                            <option label="Estonian">est</option>
+                            <option label="Finnish">fin</option>
+                            <option label="French">fre</option>
+                            <option label="German">ger</option>
+                            <option label="Greek">gre</option>
+                            <option label="Hebrew">heb</option>
+                            <option label="Hindi">hin</option>
+                            <option label="Hungarian">hun</option>
+                            <option label="Icelandic">ice</option>
+                            <option label="Indonesian">ind</option>
+                            <option label="Italian">ita</option>
+                            <option label="Japanese">jpn</option>
+                            <option label="Korean">kor</option>
+                            <option label="Latvian">lav</option>
+                            <option label="Lithuanian">lit</option>
+                            <option label="Malay">may</option>
+                            <option label="Norwegian">nor</option>
+                            <option label="Persian">per</option>
+                            <option label="Polish">pol</option>
+                            <option label="Portuguese">por</option>
+                            <option label="Portuguese (Brazil)">pob</option>
+                            <option label="Romanian">rum</option>
+                            <option label="Russian">rus</option>
+                            <option label="Serbian">srp</option>
+                            <option label="Slovak">slo</option>
+                            <option label="Slovenian">slv</option>
+                            <option label="Spanish">spa</option>
+                            <option label="Swedish">swe</option>
+                            <option label="Thai">tha</option>
+                            <option label="Turkish">tur</option>
+                            <option label="Ukrainian">ukr</option>
+                            <option label="Vietnamese">vie</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+        </category>
+        <category id="playback" label="32040" help="32041">
+            <group id="1" label="32042">
+                <setting id="trailer_mode" type="string" label="32043" help="32044">
+                    <level>0</level>
+                    <default>leave</default>
+                    <constraints>
+                        <options>
+                            <option label="32090">leave</option>
+                            <option label="32093">main</option>
+                            <option label="32087">original</option>
+                            <option label="32088">default</option>
+                            <option label="32089">kodi</option>
+                            <option label="32094">language</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+                <setting id="trailer_language" type="string" label="32045" help="32046">
+                    <level>0</level>
+                    <default>eng</default>
+                    <constraints>
+                        <options>
+                            <option label="32100">ara</option>
+                            <option label="32101">bul</option>
+                            <option label="32102">cat</option>
+                            <option label="32103">chi</option>
+                            <option label="32104">zhs</option>
+                            <option label="32105">zht</option>
+                            <option label="32106">hrv</option>
+                            <option label="32107">cze</option>
+                            <option label="32108">dan</option>
+                            <option label="32109">dut</option>
+                            <option label="32110">eng</option>
+                            <option label="32111">est</option>
+                            <option label="32112">fin</option>
+                            <option label="32113">fre</option>
+                            <option label="32114">ger</option>
+                            <option label="32115">gre</option>
+                            <option label="32116">heb</option>
+                            <option label="32117">hin</option>
+                            <option label="32118">hun</option>
+                            <option label="32119">ice</option>
+                            <option label="32120">ind</option>
+                            <option label="32121">ita</option>
+                            <option label="32122">jpn</option>
+                            <option label="32123">kor</option>
+                            <option label="32124">lav</option>
+                            <option label="32125">lit</option>
+                            <option label="32126">may</option>
+                            <option label="32127">nor</option>
+                            <option label="32128">per</option>
+                            <option label="32129">pol</option>
+                            <option label="32130">por</option>
+                            <option label="32131">pob</option>
+                            <option label="32132">rum</option>
+                            <option label="32133">rus</option>
+                            <option label="32134">srp</option>
+                            <option label="32135">slo</option>
+                            <option label="32136">slv</option>
+                            <option label="32137">spa</option>
+                            <option label="32138">swe</option>
+                            <option label="32139">tha</option>
+                            <option label="32140">tur</option>
+                            <option label="32141">ukr</option>
+                            <option label="32142">vie</option>
+                        </options>
+                    </constraints>
+                    <dependencies>
+                    <dependency type="visible" setting="trailer_mode">language</dependency>
+                    </dependencies>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+            <group id="2" label="32049">
+                <setting id="extra_mode" type="string" label="32050" help="32051">
+                    <level>0</level>
+                    <default>leave</default>
+                    <constraints>
+                        <options>
+                            <option label="32090">leave</option>
+                            <option label="32093">main</option>
+                            <option label="32087">original</option>
+                            <option label="32088">default</option>
+                            <option label="32089">kodi</option>
+                            <option label="32094">language</option>
+                        </options>
+                    </constraints>
+                    <control type="list" format="string" />
+                </setting>
+                <setting id="extra_language" type="string" label="32052" help="32053">
+                    <level>0</level>
+                    <default>eng</default>
+                    <constraints>
+                        <options>
+                            <option label="32100">ara</option>
+                            <option label="32101">bul</option>
+                            <option label="32102">cat</option>
+                            <option label="32103">chi</option>
+                            <option label="32104">zhs</option>
+                            <option label="32105">zht</option>
+                            <option label="32106">hrv</option>
+                            <option label="32107">cze</option>
+                            <option label="32108">dan</option>
+                            <option label="32109">dut</option>
+                            <option label="32110">eng</option>
+                            <option label="32111">est</option>
+                            <option label="32112">fin</option>
+                            <option label="32113">fre</option>
+                            <option label="32114">ger</option>
+                            <option label="32115">gre</option>
+                            <option label="32116">heb</option>
+                            <option label="32117">hin</option>
+                            <option label="32118">hun</option>
+                            <option label="32119">ice</option>
+                            <option label="32120">ind</option>
+                            <option label="32121">ita</option>
+                            <option label="32122">jpn</option>
+                            <option label="32123">kor</option>
+                            <option label="32124">lav</option>
+                            <option label="32125">lit</option>
+                            <option label="32126">may</option>
+                            <option label="32127">nor</option>
+                            <option label="32128">per</option>
+                            <option label="32129">pol</option>
+                            <option label="32130">por</option>
+                            <option label="32131">pob</option>
+                            <option label="32132">rum</option>
+                            <option label="32133">rus</option>
+                            <option label="32134">srp</option>
+                            <option label="32135">slo</option>
+                            <option label="32136">slv</option>
+                            <option label="32137">spa</option>
+                            <option label="32138">swe</option>
+                            <option label="32139">tha</option>
+                            <option label="32140">tur</option>
+                            <option label="32141">ukr</option>
+                            <option label="32142">vie</option>
+                        </options>
+                    </constraints>
+                    <dependencies>
+                    <dependency type="visible" setting="extra_mode">language</dependency>
+                    </dependencies>
+                    <control type="list" format="string" />
+                </setting>
+            </group>
+        </category>
+        <category id="shows" label="32060" help="32061">
+            <group id="1">
+                <setting id="manage_shows" type="action" label="32062" help="32063">
+                    <level>0</level>
+                    <data>RunScript(C:/Users/gideo/AppData/Roaming/Kodi/addons/service.audio.enforcer/resources/lib/showrules.py)</data>
+                    <control type="button" format="action" />
+                </setting>
+            </group>
+        </category>
+    </section>
+</settings>
