@@ -1,5 +1,7 @@
 # Audio Enforcer
 
+**Project page:** [jonnypuma.github.io/#/service.audio.enforcer](https://jonnypuma.github.io/#/service.audio.enforcer) · **All add-ons and apps by jonnypuma:** [jonnypuma.github.io](https://jonnypuma.github.io/)
+
 Kodi service add-on that selects a preferred audio track when a video starts.
 
 ## What it does
