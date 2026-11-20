@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 """Pick one audio stream from the priority list."""
 
-from languages import LANGUAGES, flag, is_commentary, language_label, language_matches, spec_from_text
+from languages import (
+    LANGUAGES,
+    flag,
+    is_audio_description,
+    is_commentary,
+    language_label,
+    language_matches,
+    spec_from_text,
+)
 
 _LAYOUTS = {1: "mono", 2: "stereo", 6: "5.1", 8: "7.1"}
 
@@ -79,11 +87,16 @@ def _number(value):
         return 0
 
 
-def best_stream(streams, avoid_commentary):
-    """Prefer a real dialogue track, then the file default, then more channels."""
+def best_stream(streams, avoid_commentary, avoid_ad=True, prefer_quality=False):
+    """Prefer a real dialogue track, then either quality or the file default."""
     rows = [stream for stream in streams or [] if isinstance(stream, dict) and stream.get("index") is not None]
     if avoid_commentary:
         plain = [stream for stream in rows if not is_commentary(stream)]
+        if not plain:
+            return None
+        rows = plain
+    if avoid_ad:
+        plain = [stream for stream in rows if not is_audio_description(stream)]
         if not plain:
             return None
         rows = plain
@@ -91,19 +104,20 @@ def best_stream(streams, avoid_commentary):
         return None
 
     def sort_key(stream):
-        return (
-            0 if flag(stream.get("isdefault")) else 1,
-            0 if flag(stream.get("isoriginal")) else 1,
-            -_number(stream.get("channels")),
-            -_number(stream.get("bitrate")),
-            _number(stream.get("index")),
-        )
+        is_def = 0 if flag(stream.get("isdefault")) else 1
+        is_orig = 0 if flag(stream.get("isoriginal")) else 1
+        channels = -_number(stream.get("channels"))
+        bitrate = -_number(stream.get("bitrate"))
+        index = _number(stream.get("index"))
+        if prefer_quality:
+            return (channels, bitrate, is_def, is_orig, index)
+        return (is_def, is_orig, channels, bitrate, index)
 
     rows.sort(key=sort_key)
     return rows[0]
 
 
-def choose_audio(streams, priorities, original_language, avoid_commentary):
+def choose_audio(streams, priorities, original_language, avoid_commentary, avoid_ad=True, prefer_quality=False):
     """Return (priority, stream) for the first priority that has an allowed track."""
     usable = [stream for stream in streams or [] if isinstance(stream, dict)]
     for pref in priorities or []:
@@ -125,7 +139,7 @@ def choose_audio(streams, priorities, original_language, avoid_commentary):
             candidates = [stream for stream in usable if language_matches(stream, spec)]
         else:
             continue
-        picked = best_stream(candidates, avoid_commentary)
+        picked = best_stream(candidates, avoid_commentary, avoid_ad=avoid_ad, prefer_quality=prefer_quality)
         if picked is not None:
             return pref, picked
     return None, None
@@ -141,6 +155,8 @@ def describe_stream(stream):
         flags.append("original")
     if is_commentary(stream):
         flags.append("commentary")
+    if is_audio_description(stream):
+        flags.append("AD")
     channels = _number(stream.get("channels"))
     if channels:
         flags.append("{0}ch".format(channels))
@@ -156,6 +172,8 @@ def selection_message(pref, stream):
     notes = []
     if is_commentary(stream):
         notes.append("commentary")
+    if is_audio_description(stream):
+        notes.append("AD")
     channels = _number(stream.get("channels"))
     if channels in _LAYOUTS and channels > 2:
         notes.append(_LAYOUTS[channels])

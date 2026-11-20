@@ -5,10 +5,15 @@ import json
 import os
 import re
 import sqlite3
+import tempfile
+import threading
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+_CACHE_LOCK = threading.Lock()
 
 API = "https://api.themoviedb.org/3"
 USER_AGENT = "AudioEnforcer/1.0"
@@ -89,7 +94,8 @@ def lookup_title(info):
 
 
 def _loose(text):
-    return " ".join(re.split(r"[^0-9a-z]+", (text or "").lower())).strip()
+    normalized = unicodedata.normalize("NFKC", text or "").casefold()
+    return " ".join(part for part in re.split(r"[^\w]+|_", normalized) if part)
 
 
 def _digits(value):
@@ -199,24 +205,65 @@ class LanguageCache(object):
                 return language, row.get("source") or "cache", True
         return "", "", False
 
+    def _prune(self, now):
+        expired = []
+        for key, row in self.data.items():
+            if not isinstance(row, dict):
+                expired.append(key)
+                continue
+            try:
+                age = now - float(row.get("at") or 0)
+            except (TypeError, ValueError):
+                expired.append(key)
+                continue
+            language = row.get("language") or ""
+            if age > (HIT_TTL if language else MISS_TTL):
+                expired.append(key)
+        for key in expired:
+            self.data.pop(key, None)
+
     def put(self, keys, language, source):
         if not self.path or not keys:
             return
-        stamp = self.now()
-        for key in keys:
-            self.data[key] = {
-                "language": language or "",
-                "source": source or "",
-                "at": stamp,
-            }
-        directory = os.path.dirname(self.path)
-        if directory and not os.path.isdir(directory):
-            os.makedirs(directory)
-        temporary = self.path + ".tmp"
-        with open(temporary, "w", encoding="utf-8") as handle:
-            json.dump(self.data, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-        os.replace(temporary, self.path)
+        with _CACHE_LOCK:
+            self._load()
+            stamp = self.now()
+            self._prune(stamp)
+            for key in keys:
+                self.data[key] = {
+                    "language": language or "",
+                    "source": source or "",
+                    "at": stamp,
+                }
+            directory = os.path.dirname(self.path) or "."
+            if directory and not os.path.isdir(directory):
+                os.makedirs(directory)
+            fd, temporary = tempfile.mkstemp(prefix=".cache_", suffix=".tmp", dir=directory)
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    json.dump(self.data, handle, ensure_ascii=False, indent=2)
+                    handle.write("\n")
+                os.replace(temporary, self.path)
+            except Exception:
+                try:
+                    os.remove(temporary)
+                except OSError:
+                    pass
+                raise
+
+
+def clear_language_cache(path):
+    """Remove the saved original-language cache file if it exists."""
+    if not path:
+        return False
+    with _CACHE_LOCK:
+        if not os.path.isfile(path):
+            return False
+        try:
+            os.remove(path)
+            return True
+        except OSError:
+            return False
 
 
 def _safe_name(name):
@@ -452,12 +499,12 @@ def _request_json(opener, path, api_key, timeout, params=None):
     return json.loads(payload.decode("utf-8"))
 
 
-def lookup_tmdb_api(info, api_key, opener, timeout=6):
-    """Search or fetch TheMovieDB and return an ISO 639-1 code, or ''."""
+def _lookup_tmdb_api(info, api_key, opener, timeout=6):
+    """Return (language, ok). ok is False when a network or API error prevented a lookup."""
     info = info or {}
     api_key = (api_key or "").strip()
     if not api_key or opener is None:
-        return ""
+        return "", False
     kind = "tv" if _tv(info) else "movie"
     tmdb = _digits(info.get("tmdb"))
     imdb = str(info.get("imdb") or "").strip()
@@ -465,23 +512,23 @@ def lookup_tmdb_api(info, api_key, opener, timeout=6):
         if tmdb:
             data = _request_json(opener, "/{0}/{1}".format(kind, tmdb), api_key, timeout)
             language = (data or {}).get("original_language") or ""
-            return language if usable_language(language) else ""
+            return (language if usable_language(language) else ""), True
         if imdb.lower().startswith("tt"):
             data = _request_json(
                 opener, "/find/{0}".format(urllib.parse.quote(imdb)), api_key, timeout,
                 {"external_source": "imdb_id"},
             )
             if not isinstance(data, dict):
-                return ""
+                return "", True
             first = "tv_results" if kind == "tv" else "movie_results"
             second = "movie_results" if first == "tv_results" else "tv_results"
             results = data.get(first) or data.get(second) or []
             if results and usable_language(results[0].get("original_language")):
-                return str(results[0].get("original_language")).strip()
-            return ""
+                return str(results[0].get("original_language")).strip(), True
+            return "", True
         title = lookup_title(info)
         if not title:
-            return ""
+            return "", False
         year = str(info.get("year") or "")
         if kind == "tv":
             params = {"query": title}
@@ -494,9 +541,15 @@ def lookup_tmdb_api(info, api_key, opener, timeout=6):
                 params["year"] = year
             data = _request_json(opener, "/search/movie", api_key, timeout, params)
         results = (data or {}).get("results") if isinstance(data, dict) else []
-        return pick_result(results or [], title, year)
+        return pick_result(results or [], title, year), True
     except Exception:
-        return ""
+        return "", False
+
+
+def lookup_tmdb_api(info, api_key, opener, timeout=6):
+    """Search or fetch TheMovieDB and return an ISO 639-1 code, or ''."""
+    language, _ok = _lookup_tmdb_api(info, api_key, opener, timeout=timeout)
+    return language
 
 
 def lookup_helper(info, db_paths, hints=None):
@@ -545,8 +598,8 @@ def search_original(info, api_key, db_paths, cache, opener=None, timeout=6):
             if cache is not None:
                 cache.put(keys, language, "tmdbhelper")
             return language, "tmdbhelper"
-    language = lookup_tmdb_api(info, api_key, opener, timeout=timeout) if api_key else ""
-    if cache is not None and api_key:
+    language, ok = _lookup_tmdb_api(info, api_key, opener, timeout=timeout) if api_key else ("", False)
+    if cache is not None and api_key and ok:
         cache.put(keys, language, "tmdb")
     if language:
         return language, "tmdb"

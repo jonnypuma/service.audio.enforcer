@@ -239,7 +239,75 @@ def flag(value):
     return bool(value)
 
 
+_COMMENTARY_WORDS = (
+    "commentary",
+    "commentaries",
+    "commentaire",
+    "commentaires",
+    "comentario",
+    "comentarios",
+    "commento",
+    "comentário",
+    "comentários",
+    "komentarz",
+)
+
+_COMMENTARY_SUBSTRINGS = (
+    "kommentar",
+    "коментар",
+    "комментарий",
+    "コメンタリー",
+    "해설",
+)
+
+_AD_PHRASES = (
+    "audio description",
+    "visually impaired",
+    "audiodeskription",
+    "audiodescription",
+    "descrizione audio",
+    "audiodescripción",
+    "audiodescripcion",
+    "audiodescrição",
+    "audiodescricao",
+    "descriptive audio",
+    "descriptive video",
+    "descriptive",
+)
+
+
 def is_commentary(stream):
-    """True when the track name says it is a commentary."""
+    """True when the stream flag or track name says it is a commentary."""
+    if flag(stream.get("iscommentary")):
+        return True
     _language, name = stream_text(stream)
-    return _token(name, "commentary") or _token(name, "commentaries")
+    if not name:
+        return False
+    for part in _COMMENTARY_SUBSTRINGS:
+        if part in name:
+            return True
+    for word in _COMMENTARY_WORDS:
+        if word.isascii():
+            if _token(name, word):
+                return True
+        elif word in name:
+            return True
+    return False
+
+
+def is_audio_description(stream):
+    """True when the stream flag or track name indicates audio description."""
+    if flag(stream.get("isvisualimpaired")):
+        return True
+    _language, name = stream_text(stream)
+    if not name:
+        return False
+    for phrase in _AD_PHRASES:
+        if phrase in name:
+            return True
+    if _token(name, "dvs"):
+        return True
+    if re.search(r"(?:[\(\[\-\s]|^)ad(?:[\)\]]|$)", name) is not None and name != "ad":
+        if re.search(r"[\(\[]\s*ad\s*[\)\]]", name) is not None or re.search(r"[-–—]\s*ad\s*$", name) is not None:
+            return True
+    return name == "ad"

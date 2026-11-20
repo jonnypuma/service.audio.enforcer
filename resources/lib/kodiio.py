@@ -58,6 +58,12 @@ def addon():
     return ADDON
 
 
+def reset_addon():
+    """Discard the cached Addon handle so updated settings are read fresh."""
+    global ADDON
+    ADDON = None
+
+
 def profile_path():
     path = translate(addon().getAddonInfo("profile"))
     if path and not os.path.isdir(path):
@@ -119,35 +125,41 @@ def localized(string_id, fallback):
     return text
 
 
+def notify_mode():
+    """Return 'off', 'changed', or 'always'. Maps legacy boolean values."""
+    raw = string_setting("notify", "changed").strip().lower()
+    if raw in ("off", "false", "0", "no"):
+        return "off"
+    if raw in ("always", "true", "1", "yes"):
+        return "always"
+    return "changed"
+
+
 def load_preferences():
     """Current settings that decide which audio track is chosen."""
-    from languages import LANGUAGES, priority_value
+    from languages import priority_value
 
     priorities = []
     for slot in range(1, 6):
         code = priority_value(string_setting("lang_{0}".format(slot), "off"))
-        if not code or code == "off":
+        if not code or code in ("off", "custom"):
             continue
-        custom = ""
-        if code == "custom":
-            custom = string_setting("lang_{0}_custom".format(slot), "")
-            if priority_value(custom) in ("", "off", "original", "default", "kodi", "custom"):
-                continue
-            custom = priority_value(custom)
-            code = "custom"
-        elif code in LANGUAGES:
-            custom = ""
         priorities.append({
             "slot": slot,
             "code": code,
-            "custom": custom,
+            "custom": "",
         })
+    mode = notify_mode()
     return {
         "enabled": bool_setting("enabled", True),
         "avoid_commentary": bool_setting("avoid_commentary", True),
-        "notify": bool_setting("notify", True),
+        "avoid_ad": bool_setting("avoid_ad", True),
+        "prefer_quality": bool_setting("prefer_quality", False),
+        "notify": mode != "off",
+        "notify_mode": mode,
         "use_tmdb": bool_setting("use_tmdb", True),
         "tmdb_apikey": string_setting("tmdb_apikey", ""),
+        "show_rule_fallback": bool_setting("show_rule_fallback", True),
         "priorities": priorities,
         "trailer_mode": string_setting("trailer_mode", "leave").lower() or "leave",
         "trailer_language": string_setting("trailer_language", "eng").lower() or "eng",
@@ -461,8 +473,11 @@ def set_audio_stream(playerid, index):
     return result is not None
 
 
-def notify(message):
-    if not bool_setting("notify", True):
+def notify(message, changed=True, mode=None):
+    active_mode = mode if mode is not None else notify_mode()
+    if active_mode == "off":
+        return
+    if active_mode == "changed" and not changed:
         return
     import xbmcgui
     icon = xbmcgui.NOTIFICATION_INFO
@@ -473,6 +488,12 @@ def notify(message):
     except Exception:
         pass
     xbmcgui.Dialog().notification(ADDON_NAME, message, icon, 4000, False)
+
+
+def clear_language_cache():
+    from tmdb import clear_language_cache as _clear
+
+    return _clear(language_cache_path())
 
 
 def helper_installed():

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Select an audio track when a video starts."""
 
+import os
 import threading
 import time
 import traceback
@@ -26,6 +27,8 @@ AUDIO_WAIT = 8.0
 STABLE_SECONDS = 1.0
 # TheMovieDB is allowed a little longer than the stream list.
 LOOKUP_WAIT = 14.0
+IDLE_POLL = 0.5
+ACTIVE_POLL = 0.1
 
 
 class _Lookup(object):
@@ -56,8 +59,42 @@ class AudioEnforcer(xbmc.Player):
         self._session_mark = 0.0
         self._switch_at = 0.0
         self._stopped = False
+        self._prefs = None
+        self._prefs_dirty = True
+        self._rules_cache = None
+        self._rules_stat = None
         self._reset()
         kodiio.log("Service initialized")
+
+    def invalidate_settings(self):
+        self._prefs_dirty = True
+
+    def is_idle(self):
+        return not self._pending and (not self._active or self._done)
+
+    def _preferences(self):
+        if self._prefs is None or self._prefs_dirty:
+            self._prefs = kodiio.load_preferences()
+            self._prefs_dirty = False
+        return self._prefs
+
+    def _rules(self):
+        path = kodiio.show_rules_path()
+        try:
+            st = os.stat(path)
+            stat_key = (path, st.st_mtime, st.st_size)
+        except OSError:
+            stat_key = (path, None, None)
+        if self._rules_cache is not None and self._rules_stat == stat_key:
+            return self._rules_cache
+        try:
+            rules = load_rules(path) if stat_key[1] is not None else []
+        except Exception:
+            kodiio.log("Could not read show rules\n{0}".format(traceback.format_exc()), xbmc.LOGERROR)
+            rules = []
+        self._rules_cache = rules
+        self._rules_stat = stat_key
+        return rules
 
     def _reset(self):
         self._pending = False
@@ -137,12 +174,15 @@ class AudioEnforcer(xbmc.Player):
         self._reset()
 
     def tick(self):
-        if not kodiio.bool_setting("enabled", True):
+        prefs = self._preferences()
+        if not prefs.get("enabled", True):
             self._pending = False
             self._active = False
             return
         self._promote()
         if not self._active:
+            return
+        if self._done:
             return
         try:
             playing_video = self.isPlayingVideo()
@@ -155,7 +195,7 @@ class AudioEnforcer(xbmc.Player):
                 self._reset()
             return
         self._not_playing_since = None
-        self._enforce()
+        self._enforce(prefs)
 
     def _promote(self):
         if not self._pending or self._active:
@@ -220,9 +260,11 @@ class AudioEnforcer(xbmc.Player):
         self._info = merge_info(self._info, info)
         return self._info
 
-    def _enforce(self):
+    def _enforce(self, prefs=None):
         if self._done:
             return
+        if prefs is None:
+            prefs = self._preferences()
         elapsed = time.monotonic() - self._started
         timed_out = elapsed > AUDIO_WAIT
         playerid = self._player_id()
@@ -231,15 +273,13 @@ class AudioEnforcer(xbmc.Player):
                 self._give_up("No video player was available for audio selection")
             return
 
-        info = self._remember_info(playerid)
+        if self._info is None or not _identified(self._info):
+            info = self._remember_info(playerid)
+        else:
+            info = self._info
         if not _identified(info) and elapsed < 3.0 and not timed_out:
             return
-        prefs = kodiio.load_preferences()
-        try:
-            rules = load_rules(kodiio.show_rules_path())
-        except Exception:
-            kodiio.log("Could not read show rules\n{0}".format(traceback.format_exc()), xbmc.LOGERROR)
-            rules = []
+        rules = self._rules()
         kind, plan, reason = _as_plan(playback_plan(info, prefs, rules))
         if kind == "skip":
             self._done = True
@@ -265,6 +305,14 @@ class AudioEnforcer(xbmc.Player):
         if streams and not stable and not timed_out:
             return
 
+        if len(streams) <= 1:
+            self._done = True
+            if len(streams) == 1:
+                kodiio.log("Only one audio stream ({0}), leaving unchanged".format(describe_stream(streams[0])))
+            else:
+                kodiio.log("No audio streams available")
+            return
+
         kodi_value = None
         if any(pref.get("code") == "kodi" for pref in plan):
             kodi_value = kodiio.read_kodi_audio_setting()
@@ -285,7 +333,12 @@ class AudioEnforcer(xbmc.Player):
                 return
 
         pref, stream = choose_audio(
-            streams, resolved, original, prefs.get("avoid_commentary", True)
+            streams,
+            resolved,
+            original,
+            prefs.get("avoid_commentary", True),
+            avoid_ad=prefs.get("avoid_ad", True),
+            prefer_quality=prefs.get("prefer_quality", False),
         )
         if pref is None:
             self._give_up("No audio track matched. Available: {0}".format(format_streams(streams)))
@@ -293,7 +346,7 @@ class AudioEnforcer(xbmc.Player):
 
         current_index = current.get("index") if isinstance(current, dict) else None
         if current_index is not None and int(current_index) == int(stream["index"]):
-            self._finish(pref, stream, reason, info, rules, changed=False)
+            self._finish(pref, stream, reason, info, rules, prefs, changed=False)
             return
         if time.monotonic() - self._switch_try < 0.4:
             return
@@ -304,7 +357,7 @@ class AudioEnforcer(xbmc.Player):
                 self._give_up("Could not select {0}".format(describe_stream(stream)))
             return
         self._switch_at = time.monotonic()
-        self._finish(pref, stream, reason, info, rules, changed=True)
+        self._finish(pref, stream, reason, info, rules, prefs, changed=True)
 
     def _original_language(self, streams, info, prefs, elapsed):
         """Return (language, ready). Ready is false while TheMovieDB Helper is still being read."""
@@ -371,7 +424,7 @@ class AudioEnforcer(xbmc.Player):
             return
         kodiio.log("Original language was not found")
 
-    def _finish(self, pref, stream, reason, info, rules, changed):
+    def _finish(self, pref, stream, reason, info, rules, prefs, changed):
         self._done = True
         prefix = "Selected" if changed else "Already using"
         rule = ""
@@ -382,7 +435,7 @@ class AudioEnforcer(xbmc.Player):
         kodiio.log("{0} priority {1} {2}: {3}{4}".format(
             prefix, pref.get("slot") or 0, pref.get("label") or "", describe_stream(stream), rule
         ))
-        kodiio.notify(selection_message(pref, stream))
+        kodiio.notify(selection_message(pref, stream), changed=changed, mode=prefs.get("notify_mode"))
 
     def _give_up(self, message):
         self._done = True
@@ -442,18 +495,29 @@ def _signature(streams):
     return tuple(rows)
 
 
+class _Monitor(xbmc.Monitor):
+    def __init__(self, player):
+        xbmc.Monitor.__init__(self)
+        self._player = player
+
+    def onSettingsChanged(self):
+        kodiio.reset_addon()
+        self._player.invalidate_settings()
+
+
 def main():
     version = kodiio.addon().getAddonInfo("version")
     kodiio.log("{0} service starting".format(version))
     player = AudioEnforcer()
-    monitor = xbmc.Monitor()
+    monitor = _Monitor(player)
     try:
         while not monitor.abortRequested():
             try:
                 player.tick()
             except Exception:
                 kodiio.log("Service tick failed\n{0}".format(traceback.format_exc()), xbmc.LOGERROR)
-            if monitor.waitForAbort(0.1):
+            wait = IDLE_POLL if player.is_idle() else ACTIVE_POLL
+            if monitor.waitForAbort(wait):
                 break
     except KeyboardInterrupt:
         pass

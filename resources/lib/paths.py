@@ -2,6 +2,7 @@
 """File-path checks for trailers, extras, and show-folder names."""
 
 import re
+import unicodedata
 
 _EXTRA_DIRS = {
     "extra",
@@ -53,7 +54,8 @@ def path_stem(path):
 
 
 def path_words(text):
-    return [part for part in re.split(r"[^0-9a-z]+", (text or "").lower()) if part]
+    normalized = unicodedata.normalize("NFKC", text or "").casefold()
+    return [part for part in re.split(r"[^\w]+|_", normalized) if part]
 
 
 def loose_title(text):

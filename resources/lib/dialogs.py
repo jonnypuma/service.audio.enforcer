@@ -5,7 +5,7 @@ import xbmc
 import xbmcgui
 
 import kodiio
-from languages import LANGUAGE_CHOICES, LANGUAGES, SETTING_ROWS, priority_value
+from languages import LANGUAGE_CHOICES, LANGUAGES
 from paths import suggested_name
 from rules import (
     format_rule,
@@ -68,62 +68,11 @@ def pick_language(dialog, heading, include_leave):
     return code, ""
 
 
-_PRIORITY_SETTINGS = ("lang_1", "lang_2", "lang_3", "lang_4", "lang_5")
-
-
-def _priority_rows():
-    return [
-        (code, kodiio.localized(string_id, fallback))
-        for code, string_id, fallback in SETTING_ROWS
-    ]
-
-
 def _select(dialog, heading, labels, selected):
     try:
         return dialog.select(heading, labels, 0, selected)
     except TypeError:
         return dialog.select(heading, labels)
-
-
-def pick_audio_setting(setting_id):
-    """Language opens five choices. Custom audio language opens the language list."""
-    if setting_id not in _PRIORITY_SETTINGS:
-        return
-    # The settings window closes first. Wait until it is gone so this list is on screen.
-    xbmc.sleep(400)
-    try:
-        _pick_audio_setting(setting_id)
-    finally:
-        xbmc.executebuiltin("Addon.OpenSettings({0})".format(kodiio.ADDON_ID))
-
-
-def _pick_audio_setting(setting_id):
-    kodiio.log("Language list for {0}".format(setting_id))
-    addon = kodiio.addon()
-    try:
-        current = addon.getSetting(setting_id) or ""
-    except Exception:
-        current = ""
-    resolved = priority_value(current)
-    dialog = xbmcgui.Dialog()
-    rows = _priority_rows()
-    labels = [label for _action, label in rows]
-    selected = {"off": 0, "original": 1, "default": 2, "kodi": 3}.get(resolved, 4 if resolved else 0)
-    choice = _select(dialog, kodiio.localized(32027, "Language"), labels, selected)
-    if choice < 0:
-        return
-    action = rows[choice][0]
-    if action != "custom":
-        addon.setSetting(setting_id, SETTING_ROWS[choice][2])
-        return
-    code = _select_language(
-        dialog,
-        kodiio.localized(32150, "Custom audio language"),
-        resolved if resolved in LANGUAGES else "",
-    )
-    if code is None:
-        return
-    addon.setSetting(setting_id, LANGUAGES[code]["label"])
 
 
 def _notify(message):
@@ -186,20 +135,17 @@ def _choose_title(dialog, query):
     if len(query) < 2:
         _notify(kodiio.localized(32086, "That title is empty."))
         return None
-    busy = None
     try:
-        busy = xbmcgui.DialogBusy()
-        busy.create()
+        xbmc.executebuiltin("ActivateWindow(busydialognocancel)")
     except Exception:
-        busy = None
+        pass
     try:
         hits = _search_titles(query)
     finally:
-        if busy is not None:
-            try:
-                busy.close()
-            except Exception:
-                pass
+        try:
+            xbmc.executebuiltin("Dialog.Close(busydialognocancel)")
+        except Exception:
+            pass
     if not hits:
         _notify(kodiio.localized(32092, "No matching show or movie."))
         return None
@@ -308,11 +254,28 @@ def manage_show_rules():
             _edit(dialog, rules[choice - offset])
 
 
+def clear_cache():
+    """Prompt and clear the cached original-language lookup file."""
+    dialog = xbmcgui.Dialog()
+    prompt = kodiio.localized(32165, "Clear all cached original-language lookups?")
+    if not dialog.yesno(kodiio.ADDON_NAME, prompt):
+        return
+    kodiio.clear_language_cache()
+    _notify(kodiio.localized(32166, "Original language cache cleared"))
+    kodiio.log("Cleared original language cache")
+
+
 def set_rule_for_context():
-    """Save a language for the show or movie focused in the library."""
+    """Save, change, or remove a language rule for the show or movie focused in the library."""
     dialog = xbmcgui.Dialog()
     hit = kodiio.context_title()
     if hit.get("name") and linked(hit):
+        rules = load_rules(kodiio.show_rules_path())
+        key = rule_key(hit)
+        existing = [rule for rule in rules if rule_key(rule) == key]
+        if existing:
+            _edit(dialog, existing[0])
+            return
         _add_hit(dialog, hit)
         return
     name = hit.get("name") or title_for_context(

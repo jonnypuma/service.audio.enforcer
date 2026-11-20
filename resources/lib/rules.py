@@ -347,6 +347,8 @@ def playback_plan(info, prefs, rules):
         planned = rule_priorities(rule)
         if planned == "leave":
             return ("skip", "show")
+        if prefs.get("show_rule_fallback", True):
+            planned = list(planned) + list(prefs.get("priorities") or [])
         return ("use", planned, "show")
     return ("use", list(prefs.get("priorities") or []), "main")
 

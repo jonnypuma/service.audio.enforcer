@@ -19,6 +19,8 @@ from languages import (
     LANGUAGE_CHOICES,
     LANGUAGES,
     SETTING_ROWS,
+    is_audio_description,
+    is_commentary,
     language_matches,
     priority_value,
     spec_from_text,
@@ -27,6 +29,7 @@ from paths import is_extra_path, is_trailer_path, suggested_name, title_match, y
 from rules import canonicalize_action, load_rules, match_rule, playback_plan, save_rules, upsert_rule
 from tmdb import (
     LanguageCache,
+    clear_language_cache,
     helper_api_key_from_source,
     lookup_helper_db,
     pick_result,
@@ -74,6 +77,20 @@ class LanguageTests(unittest.TestCase):
         spec = spec_from_text("cym")
         self.assertEqual(spec["label"], "cym")
         self.assertTrue(language_matches(stream(0, "cym"), spec))
+
+    def test_multilingual_commentary_and_audio_description(self):
+        self.assertTrue(is_commentary({"language": "ger", "name": "Audiokommentar"}))
+        self.assertTrue(is_commentary({"language": "fre", "name": "Commentaire du réalisateur"}))
+        self.assertTrue(is_commentary({"language": "jpn", "name": "オーディオコメンタリー"}))
+        self.assertTrue(is_commentary({"language": "eng", "name": "Stereo", "iscommentary": True}))
+        self.assertFalse(is_commentary({"language": "eng", "name": "English 5.1"}))
+
+        self.assertTrue(is_audio_description({"language": "eng", "name": "English (Audio Description)"}))
+        self.assertTrue(is_audio_description({"language": "eng", "name": "English [AD]"}))
+        self.assertTrue(is_audio_description({"language": "ger", "name": "Audiodeskription"}))
+        self.assertTrue(is_audio_description({"language": "eng", "name": "English 5.1", "isvisualimpaired": True}))
+        self.assertFalse(is_audio_description({"language": "eng", "name": "English 5.1"}))
+        self.assertFalse(is_audio_description({"language": "eng", "name": "Headphone mix"}))
 
 
 class ChooseTests(unittest.TestCase):
@@ -124,6 +141,28 @@ class ChooseTests(unittest.TestCase):
         _pref, picked = choose_audio(streams, resolved, "", True)
         self.assertEqual(picked["index"], 1)
 
+    def test_prefer_quality_outranks_default_flag(self):
+        streams = [
+            stream(0, "eng", "AC3 5.1", channels=6, default=True, bitrate=640000),
+            stream(1, "eng", "TrueHD 7.1", channels=8, bitrate=4500000),
+        ]
+        resolved, _waiting = resolve_priorities([{"slot": 1, "code": "eng", "custom": ""}], None, "", True)
+        _pref, picked_default = choose_audio(streams, resolved, "", True, prefer_quality=False)
+        self.assertEqual(picked_default["index"], 0)
+        _pref, picked_quality = choose_audio(streams, resolved, "", True, prefer_quality=True)
+        self.assertEqual(picked_quality["index"], 1)
+
+    def test_audio_description_is_skipped_when_avoid_ad_enabled(self):
+        streams = [
+            stream(0, "eng", "English (Audio Description)", channels=6, default=True),
+            stream(1, "eng", "English 5.1", channels=6),
+        ]
+        resolved, _waiting = resolve_priorities([{"slot": 1, "code": "eng", "custom": ""}], None, "", True)
+        _pref, picked = choose_audio(streams, resolved, "", True, avoid_ad=True)
+        self.assertEqual(picked["index"], 1)
+        _pref, picked_allow = choose_audio(streams, resolved, "", True, avoid_ad=False)
+        self.assertEqual(picked_allow["index"], 0)
+
     def test_original_language_uses_the_lookup_before_the_flag(self):
         streams = [
             stream(0, "eng", original=True),
@@ -151,6 +190,20 @@ class RuleTests(unittest.TestCase):
         self.assertTrue(title_match("Dark", "Dark"))
         self.assertTrue(title_match("Dark", "Dark (2017)"))
         self.assertFalse(title_match("Dark", "Dark Matter"))
+        self.assertTrue(title_match("Amélie", "Amélie (2001)"))
+        self.assertTrue(title_match("進撃の巨人", "進撃の巨人 (2013)"))
+        self.assertFalse(title_match("進撃の巨人", "進撃の巨人 劇場版"))
+
+    def test_show_rule_fallback_appends_main_priorities(self):
+        prefs = self._prefs()
+        rules = [{"name": "Bluey", "action": "jpn", "custom": ""}]
+        info = {"mediatype": "episode", "showtitle": "Bluey", "title": "Keepy Uppy", "path": "/x.mkv"}
+        kind, plan, reason = playback_plan(info, prefs, rules)
+        self.assertEqual((kind, reason), ("use", "show"))
+        self.assertEqual([item["code"] for item in plan], ["jpn", "original", "default"])
+        prefs["show_rule_fallback"] = False
+        kind, plan, reason = playback_plan(info, prefs, rules)
+        self.assertEqual([item["code"] for item in plan], ["jpn"])
 
     def test_paths_and_years(self):
         self.assertTrue(is_trailer_path(r"D:\films\Trailers\teaser.mkv"))
@@ -318,11 +371,15 @@ class TmdbTests(unittest.TestCase):
             {"title": "Dark Matter", "release_date": "2015-01-01", "original_language": "en", "popularity": 5},
             {"title": "Dark", "release_date": "2017-12-01", "original_language": "de", "popularity": 9},
             {"title": "Dark", "release_date": "1999-01-01", "original_language": "fr", "popularity": 1},
+            {"name": "進撃の巨人", "first_air_date": "2013-04-07", "original_language": "ja", "popularity": 50},
+            {"title": "Amélie", "release_date": "2001-04-25", "original_language": "fr", "popularity": 30},
         ]
         self.assertEqual(pick_result(results, "Dark", "2017"), "de")
         self.assertEqual(pick_result(results, "Dark", "2016"), "de")
         self.assertEqual(pick_result(results, "Dark", "1990"), "")
         self.assertEqual(pick_result(results, "Dark Matter", ""), "en")
+        self.assertEqual(pick_result(results, "進撃の巨人", "2013"), "ja")
+        self.assertEqual(pick_result(results, "Amélie", "2001"), "fr")
 
     def test_title_search_returns_the_show_and_the_movie(self):
         class Response(object):
@@ -595,6 +652,35 @@ class TmdbTests(unittest.TestCase):
             self.assertEqual((language, source), ("", ""))
             self.assertFalse(os.path.isfile(path))
 
+    def test_network_error_is_not_cached_and_expired_entries_are_pruned(self):
+        def failing_opener(_request, timeout=6):
+            raise OSError("temporary network outage")
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "cache.json")
+            now = {"at": 1_000_000.0}
+            cache = LanguageCache(path, now=lambda: now["at"])
+            language, source = search_original(
+                {"mediatype": "movie", "tmdb": "603", "title": "The Matrix"},
+                "testkey",
+                [],
+                cache,
+                opener=failing_opener,
+            )
+            self.assertEqual((language, source), ("", ""))
+            self.assertFalse(os.path.isfile(path))
+
+            cache.put(["movie:title:stale:"], "", "tmdb")
+            now["at"] += 4 * 24 * 3600
+            cache.put(["movie:tmdb:603"], "en", "tmdb")
+            with open(path, "r", encoding="utf-8") as handle:
+                stored = json.load(handle)
+            self.assertNotIn("movie:title:stale:", stored)
+            self.assertIn("movie:tmdb:603", stored)
+            self.assertTrue(clear_language_cache(path))
+            self.assertFalse(os.path.isfile(path))
+            self.assertFalse(clear_language_cache(path))
+
 
 class PackageTests(unittest.TestCase):
     def test_settings_match_the_language_table_and_strings(self):
@@ -612,14 +698,25 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(by_id["lang_2"].find("default").text, "default")
         self.assertEqual(by_id["lang_3"].find("default").text, "off")
         self.assertEqual(by_id["avoid_commentary"].find("default").text, "true")
+        self.assertEqual(by_id["avoid_ad"].find("default").text, "true")
+        self.assertEqual(by_id["prefer_quality"].find("default").text, "false")
         self.assertEqual(by_id["use_tmdb"].find("default").text, "true")
-        self.assertEqual(by_id["notify"].find("default").text, "true")
+        self.assertEqual(by_id["notify"].find("default").text, "changed")
+        self.assertEqual(by_id["show_rule_fallback"].find("default").text, "true")
         self.assertEqual(by_id["trailer_mode"].find("default").text, "leave")
         self.assertEqual(by_id["extra_mode"].find("default").text, "leave")
         self.assertEqual(
             by_id["manage_shows"].find("data").text,
-            "RunScript(C:/Users/gideo/AppData/Roaming/Kodi/addons/service.audio.enforcer/resources/lib/showrules.py)",
+            "RunScript(service.audio.enforcer)",
         )
+        self.assertEqual(
+            by_id["clear_cache"].find("data").text,
+            "RunScript(service.audio.enforcer, clear_cache)",
+        )
+        for data_node in settings.iter("data"):
+            text = data_node.text or ""
+            for forbidden in ("C:/", "C:\\", "/Users/", "/home/"):
+                self.assertNotIn(forbidden, text)
         names = _string_messages()
         self.assertEqual([row[0] for row in SETTING_ROWS], ["off", "original", "default", "kodi", "custom"])
         self.assertEqual(names.get("32150"), "Custom audio language")
@@ -634,12 +731,9 @@ class PackageTests(unittest.TestCase):
             labels = [item.attrib.get("label") for item in options]
             self.assertEqual(stored.find("control").attrib.get("type"), "list")
             self.assertEqual(values[:4], ["off", "original", "default", "kodi"])
-            self.assertEqual(
-                labels[:4],
-                ["Off", "Original language", "Default track", "Kodi audio language"],
-            )
+            self.assertEqual(labels[:4], ["32095", "32087", "32088", "32089"])
             self.assertEqual(values[4:], list(LANGUAGE_CHOICES))
-            self.assertEqual(labels[4:], [LANGUAGES[code]["label"] for code in LANGUAGE_CHOICES])
+            _assert_language_labels(self, options[4:], names)
             self.assertNotIn("RunScript", ET.tostring(stored, encoding="unicode"))
             self.assertNotIn(setting_id + "_text", by_id)
         for setting_id in ("trailer_language", "extra_language"):
@@ -665,7 +759,7 @@ class PackageTests(unittest.TestCase):
     def test_addon_manifest(self):
         addon = ET.parse(os.path.join(ROOT, "addon.xml")).getroot()
         self.assertEqual(addon.attrib["id"], "service.audio.enforcer")
-        self.assertEqual(addon.attrib["version"], "1.0.0")
+        self.assertEqual(addon.attrib["version"], "1.1.0")
         self.assertEqual(addon.attrib["name"], "Audio Enforcer")
         points = [node.attrib["point"] for node in addon.findall("extension")]
         self.assertEqual(points[0], "xbmc.service")
@@ -740,6 +834,171 @@ def _assert_language_labels(test, options, names):
         label = item.attrib.get("label") or ""
         test.assertTrue(label.isdigit(), item.text)
         test.assertEqual(names.get(label), LANGUAGES[item.text]["label"])
+
+
+class ServiceTests(unittest.TestCase):
+    def _import_service(self):
+        import types
+
+        fake_xbmc = types.ModuleType("xbmc")
+        fake_xbmc.LOGINFO = 1
+        fake_xbmc.LOGDEBUG = 0
+        fake_xbmc.LOGERROR = 3
+
+        class _Player(object):
+            def __init__(self):
+                self._playing_video = True
+                self._playing = True
+                self._file = "/shows/Dark (2017)/Season 1/e01.mkv"
+
+            def isPlayingVideo(self):
+                return self._playing_video
+
+            def isPlaying(self):
+                return self._playing
+
+            def getPlayingFile(self):
+                return self._file
+
+        class _Monitor(object):
+            def abortRequested(self):
+                return False
+
+            def waitForAbort(self, _timeout):
+                return True
+
+        fake_xbmc.Player = _Player
+        fake_xbmc.Monitor = _Monitor
+        fake_xbmc.log = lambda *_args, **_kwargs: None
+
+        fake_addon = types.ModuleType("xbmcaddon")
+        fake_vfs = types.ModuleType("xbmcvfs")
+
+        saved = {name: sys.modules.get(name) for name in ("xbmc", "xbmcaddon", "xbmcvfs", "kodiio", "service")}
+        sys.modules["xbmc"] = fake_xbmc
+        sys.modules["xbmcaddon"] = fake_addon
+        sys.modules["xbmcvfs"] = fake_vfs
+        sys.modules.pop("kodiio", None)
+        sys.modules.pop("service", None)
+        import kodiio
+        import service
+        return service, kodiio, saved
+
+    def _restore(self, saved):
+        for name, mod in saved.items():
+            if mod is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = mod
+
+    def test_single_stream_short_circuits_without_tmdb_or_notification(self):
+        service, kodiio, saved = self._import_service()
+        try:
+            notified = []
+            tmdb_called = []
+            kodiio.load_preferences = lambda: {
+                "enabled": True,
+                "avoid_commentary": True,
+                "avoid_ad": True,
+                "prefer_quality": False,
+                "notify": True,
+                "notify_mode": "changed",
+                "use_tmdb": True,
+                "tmdb_apikey": "key",
+                "show_rule_fallback": True,
+                "priorities": [{"slot": 1, "code": "original", "custom": ""}],
+                "trailer_mode": "leave",
+                "trailer_language": "eng",
+                "trailer_custom": "",
+                "extra_mode": "leave",
+                "extra_language": "eng",
+                "extra_custom": "",
+            }
+            kodiio.show_rules_path = lambda: ""
+            kodiio.video_player_id = lambda: 1
+            kodiio.playing_info = lambda _pid: {
+                "mediatype": "movie",
+                "title": "Solo",
+                "path": "/movies/Solo.mkv",
+            }
+            kodiio.audio_state = lambda _pid: ([stream(0, "eng", default=True)], stream(0, "eng", default=True))
+            kodiio.tmdb_credentials = lambda _key: (tmdb_called.append(True) or ("key", []))
+            kodiio.notify = lambda msg, changed=True, mode=None: notified.append((msg, changed, mode))
+
+            player = service.AudioEnforcer()
+            player.onPlayBackStarted()
+            player.tick()
+            # Force stream stability window to elapse
+            player._sig_since -= service.STABLE_SECONDS + 0.5
+            player.tick()
+
+            self.assertTrue(player._done)
+            self.assertTrue(player.is_idle())
+            self.assertEqual(tmdb_called, [])
+            self.assertEqual(notified, [])
+        finally:
+            self._restore(saved)
+
+    def test_settings_cached_until_invalidated_and_switch_notifies(self):
+        service, kodiio, saved = self._import_service()
+        try:
+            pref_loads = []
+            switched = []
+            notified = []
+
+            def load_prefs():
+                pref_loads.append(1)
+                return {
+                    "enabled": True,
+                    "avoid_commentary": True,
+                    "avoid_ad": True,
+                    "prefer_quality": False,
+                    "notify": True,
+                    "notify_mode": "changed",
+                    "use_tmdb": False,
+                    "tmdb_apikey": "",
+                    "show_rule_fallback": True,
+                    "priorities": [{"slot": 1, "code": "jpn", "custom": ""}],
+                    "trailer_mode": "leave",
+                    "trailer_language": "eng",
+                    "trailer_custom": "",
+                    "extra_mode": "leave",
+                    "extra_language": "eng",
+                    "extra_custom": "",
+                }
+
+            kodiio.load_preferences = load_prefs
+            kodiio.show_rules_path = lambda: ""
+            kodiio.video_player_id = lambda: 1
+            kodiio.playing_info = lambda _pid: {
+                "mediatype": "movie",
+                "title": "Spirited Away",
+                "path": "/movies/Spirited Away.mkv",
+            }
+            streams = [stream(0, "eng", default=True), stream(1, "jpn", channels=6)]
+            kodiio.audio_state = lambda _pid: (streams, streams[0])
+            kodiio.set_audio_stream = lambda pid, idx: (switched.append((pid, idx)) or True)
+            kodiio.notify = lambda msg, changed=True, mode=None: notified.append((msg, changed, mode))
+
+            player = service.AudioEnforcer()
+            player.tick()
+            player.tick()
+            self.assertEqual(len(pref_loads), 1)
+
+            player.invalidate_settings()
+            player.onPlayBackStarted()
+            player.tick()
+            self.assertEqual(len(pref_loads), 2)
+            player._sig_since -= service.STABLE_SECONDS + 0.5
+            player.tick()
+
+            self.assertEqual(switched, [(1, 1)])
+            self.assertEqual(len(notified), 1)
+            self.assertTrue(notified[0][1])
+            self.assertEqual(notified[0][2], "changed")
+            self.assertTrue(player.is_idle())
+        finally:
+            self._restore(saved)
 
 
 if __name__ == "__main__":

@@ -336,6 +336,54 @@ msgctxt "#32152"
 msgid "In your library"
 msgstr "In your library"
 
+msgctxt "#32153"
+msgid "Avoid audio description tracks"
+msgstr "Avoid audio description tracks"
+
+msgctxt "#32154"
+msgid "Skip visually impaired and audio description tracks, and try the next priority."
+msgstr "Skip visually impaired and audio description tracks, and try the next priority."
+
+msgctxt "#32155"
+msgid "Prefer highest quality over file default"
+msgstr "Prefer highest quality over file default"
+
+msgctxt "#32156"
+msgid "Within the same language, pick the track with more channels and higher bitrate ahead of the file's default flag."
+msgstr "Within the same language, pick the track with more channels and higher bitrate ahead of the file's default flag."
+
+msgctxt "#32157"
+msgid "Only when changed"
+msgstr "Only when changed"
+
+msgctxt "#32158"
+msgid "Always"
+msgstr "Always"
+
+msgctxt "#32161"
+msgid "Fall back to main priorities"
+msgstr "Fall back to main priorities"
+
+msgctxt "#32162"
+msgid "When a show or movie rule's chosen language is not in the file, fall back to your main priority list."
+msgstr "When a show or movie rule's chosen language is not in the file, fall back to your main priority list."
+
+msgctxt "#32163"
+msgid "Clear original language cache"
+msgstr "Clear original language cache"
+
+msgctxt "#32164"
+msgid "Delete saved original-language lookup results so titles are checked again."
+msgstr "Delete saved original-language lookup results so titles are checked again."
+
+msgctxt "#32165"
+msgid "Clear all cached original-language lookups?"
+msgstr "Clear all cached original-language lookups?"
+
+msgctxt "#32166"
+msgid "Original language cache cleared"
+msgstr "Original language cache cleared"
+
 msgctxt "#32100"
 msgid "Arabic"
 msgstr "Arabic"
