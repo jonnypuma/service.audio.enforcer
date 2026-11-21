@@ -30,7 +30,7 @@ Within one language, a track marked default comes first, then a track marked ori
 
 ## Original language
 
-When original language is selected, Audio Enforcer always asks TheMovieDB Helper. If the helper names a language and the file names a different one, the helper's language is used. If the helper has no original language, the file's original track is used, then a value stored on the item. If none of those name one, TheMovieDB is searched.
+When original language is needed (no higher priority has already matched), Audio Enforcer checks TheMovieDB Helper. If the helper names a language and the file names a different one, the helper's language is used. If the helper has no original language, the file's original track is used, then a value stored on the item. If none of those name one, TheMovieDB is searched.
 
 A found language is remembered for 30 days. A title with no match is remembered for 3 days (network errors are not cached). Use **Clear original language cache** in settings to reset saved lookups. TV episodes are looked up as the show. A search uses the exact title, and the year when one is known.
 

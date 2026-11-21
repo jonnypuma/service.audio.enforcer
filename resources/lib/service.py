@@ -61,6 +61,8 @@ class AudioEnforcer(xbmc.Player):
         self._stopped = False
         self._prefs = None
         self._prefs_dirty = True
+        self._creds = None
+        self._cache = None
         self._rules_cache = None
         self._rules_stat = None
         self._reset()
@@ -68,6 +70,17 @@ class AudioEnforcer(xbmc.Player):
 
     def invalidate_settings(self):
         self._prefs_dirty = True
+        self._creds = None
+
+    def _tmdb_credentials(self, prefs):
+        if self._creds is None:
+            self._creds = kodiio.tmdb_credentials(prefs.get("tmdb_apikey"))
+        return self._creds
+
+    def _language_cache(self):
+        if self._cache is None:
+            self._cache = LanguageCache(kodiio.language_cache_path())
+        return self._cache
 
     def is_idle(self):
         return not self._pending and (not self._active or self._done)
@@ -303,6 +316,15 @@ class AudioEnforcer(xbmc.Player):
         if not streams and not timed_out:
             return
         if streams and not stable and not timed_out:
+            if (
+                len(streams) > 1
+                and plan
+                and plan[0].get("code") == "original"
+                and prefs.get("use_tmdb", True)
+                and self._original is None
+                and self._lookup is None
+            ):
+                self._start_lookup(streams, info, prefs)
             return
 
         if len(streams) <= 1:
@@ -326,20 +348,40 @@ class AudioEnforcer(xbmc.Player):
             kodiio.log("No audio language priorities are set")
             return
 
-        original = ""
-        if needs_original(resolved):
-            original, ready = self._original_language(streams, info, prefs, elapsed)
-            if not ready:
-                return
+        avoid_commentary = prefs.get("avoid_commentary", True)
+        avoid_ad = prefs.get("avoid_ad", True)
+        prefer_quality = prefs.get("prefer_quality", False)
 
-        pref, stream = choose_audio(
-            streams,
-            resolved,
-            original,
-            prefs.get("avoid_commentary", True),
-            avoid_ad=prefs.get("avoid_ad", True),
-            prefer_quality=prefs.get("prefer_quality", False),
+        pref, stream = None, None
+        first_original = next(
+            (index for index, item in enumerate(resolved) if item.get("kind") == "original"),
+            None,
         )
+        if first_original is not None and first_original > 0:
+            pref, stream = choose_audio(
+                streams,
+                resolved[:first_original],
+                "",
+                avoid_commentary,
+                avoid_ad=avoid_ad,
+                prefer_quality=prefer_quality,
+            )
+
+        if pref is None:
+            original = ""
+            if first_original is not None:
+                original, ready = self._original_language(streams, info, prefs, elapsed)
+                if not ready:
+                    return
+            tail = resolved[first_original:] if first_original is not None else resolved
+            pref, stream = choose_audio(
+                streams,
+                tail,
+                original,
+                avoid_commentary,
+                avoid_ad=avoid_ad,
+                prefer_quality=prefer_quality,
+            )
         if pref is None:
             self._give_up("No audio track matched. Available: {0}".format(format_streams(streams)))
             return
@@ -359,6 +401,30 @@ class AudioEnforcer(xbmc.Player):
         self._switch_at = time.monotonic()
         self._finish(pref, stream, reason, info, rules, prefs, changed=True)
 
+    def _start_lookup(self, streams, info, prefs):
+        api_key, db_paths = self._tmdb_credentials(prefs)
+        cache = self._language_cache()
+        snapshot = dict(info)
+        snapshot["original_hints"] = list(info.get("original_hints") or [])
+        snapshot["helper_hints"] = list(info.get("helper_hints") or [])
+        stream_rows = [dict(stream) for stream in streams or [] if isinstance(stream, dict)]
+        hint_rows = list(snapshot["original_hints"])
+        helper_rows = list(snapshot["helper_hints"])
+        lookup = _Lookup()
+        lookup.start(lambda: resolve_original(
+            stream_rows,
+            hint_rows,
+            snapshot,
+            True,
+            api_key,
+            db_paths,
+            cache,
+            opener=urllib.request.urlopen,
+            helper_hints=helper_rows,
+        ))
+        self._lookup = lookup
+        kodiio.log("Checking the original language with TheMovieDB Helper")
+
     def _original_language(self, streams, info, prefs, elapsed):
         """Return (language, ready). Ready is false while TheMovieDB Helper is still being read."""
         if self._original is not None:
@@ -372,28 +438,7 @@ class AudioEnforcer(xbmc.Player):
             self._log_original(local, self._original_source, "")
             return local, True
         if self._lookup is None:
-            api_key, db_paths = kodiio.tmdb_credentials(prefs.get("tmdb_apikey"))
-            cache = LanguageCache(kodiio.language_cache_path())
-            snapshot = dict(info)
-            snapshot["original_hints"] = list(info.get("original_hints") or [])
-            snapshot["helper_hints"] = list(info.get("helper_hints") or [])
-            stream_rows = [dict(stream) for stream in streams or [] if isinstance(stream, dict)]
-            hint_rows = list(snapshot["original_hints"])
-            helper_rows = list(snapshot["helper_hints"])
-            lookup = _Lookup()
-            lookup.start(lambda: resolve_original(
-                stream_rows,
-                hint_rows,
-                snapshot,
-                True,
-                api_key,
-                db_paths,
-                cache,
-                opener=urllib.request.urlopen,
-                helper_hints=helper_rows,
-            ))
-            self._lookup = lookup
-            kodiio.log("Checking the original language with TheMovieDB Helper")
+            self._start_lookup(streams, info, prefs)
         if not self._lookup.done:
             if elapsed > LOOKUP_WAIT:
                 self._original = local
@@ -489,8 +534,11 @@ def _signature(streams):
             stream.get("language") or "",
             stream.get("name") or "",
             stream.get("channels"),
+            stream.get("bitrate"),
             bool(stream.get("isdefault")),
             bool(stream.get("isoriginal")),
+            bool(stream.get("iscommentary")),
+            bool(stream.get("isvisualimpaired")),
         ))
     return tuple(rows)
 

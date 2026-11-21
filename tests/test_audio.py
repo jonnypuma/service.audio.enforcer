@@ -680,6 +680,33 @@ class TmdbTests(unittest.TestCase):
             self.assertTrue(clear_language_cache(path))
             self.assertFalse(os.path.isfile(path))
             self.assertFalse(clear_language_cache(path))
+            self.assertEqual(cache.get(["movie:tmdb:603"]), ("", "", False))
+
+    def test_resolve_original_scans_helper_db_only_once_on_miss(self):
+        import tmdb as tmdb_mod
+
+        calls = []
+        original_fn = tmdb_mod.lookup_helper_db
+
+        def counting_lookup(path, info):
+            calls.append(path)
+            return ""
+
+        tmdb_mod.lookup_helper_db = counting_lookup
+        try:
+            language, source = resolve_original(
+                [stream(0, "eng", default=True)],
+                [],
+                {"mediatype": "movie", "tmdb": "999", "title": "Unknown"},
+                True,
+                "",
+                ["/fake/ItemDetails.db"],
+                None,
+            )
+            self.assertEqual((language, source), ("", ""))
+            self.assertEqual(calls, ["/fake/ItemDetails.db"])
+        finally:
+            tmdb_mod.lookup_helper_db = original_fn
 
 
 class PackageTests(unittest.TestCase):
@@ -759,7 +786,7 @@ class PackageTests(unittest.TestCase):
     def test_addon_manifest(self):
         addon = ET.parse(os.path.join(ROOT, "addon.xml")).getroot()
         self.assertEqual(addon.attrib["id"], "service.audio.enforcer")
-        self.assertEqual(addon.attrib["version"], "1.1.0")
+        self.assertEqual(addon.attrib["version"], "1.2.0")
         self.assertEqual(addon.attrib["name"], "Audio Enforcer")
         points = [node.attrib["point"] for node in addon.findall("extension")]
         self.assertEqual(points[0], "xbmc.service")
@@ -997,6 +1024,100 @@ class ServiceTests(unittest.TestCase):
             self.assertTrue(notified[0][1])
             self.assertEqual(notified[0][2], "changed")
             self.assertTrue(player.is_idle())
+        finally:
+            self._restore(saved)
+
+    def test_earlier_priority_match_skips_original_lookup(self):
+        service, kodiio, saved = self._import_service()
+        try:
+            tmdb_called = []
+            switched = []
+            kodiio.load_preferences = lambda: {
+                "enabled": True,
+                "avoid_commentary": True,
+                "avoid_ad": True,
+                "prefer_quality": False,
+                "notify": True,
+                "notify_mode": "changed",
+                "use_tmdb": True,
+                "tmdb_apikey": "key",
+                "show_rule_fallback": True,
+                "priorities": [
+                    {"slot": 1, "code": "jpn", "custom": ""},
+                    {"slot": 2, "code": "original", "custom": ""},
+                ],
+                "trailer_mode": "leave",
+                "trailer_language": "eng",
+                "trailer_custom": "",
+                "extra_mode": "leave",
+                "extra_language": "eng",
+                "extra_custom": "",
+            }
+            kodiio.show_rules_path = lambda: ""
+            kodiio.video_player_id = lambda: 1
+            kodiio.playing_info = lambda _pid: {
+                "mediatype": "movie",
+                "title": "Spirited Away",
+                "path": "/movies/Spirited Away.mkv",
+            }
+            streams = [stream(0, "eng", default=True), stream(1, "jpn", channels=6)]
+            kodiio.audio_state = lambda _pid: (streams, streams[0])
+            kodiio.set_audio_stream = lambda pid, idx: (switched.append((pid, idx)) or True)
+            kodiio.tmdb_credentials = lambda _key: (tmdb_called.append(True) or ("key", []))
+            kodiio.notify = lambda *_args, **_kwargs: None
+
+            player = service.AudioEnforcer()
+            player.onPlayBackStarted()
+            player.tick()
+            player._sig_since -= service.STABLE_SECONDS + 0.5
+            player.tick()
+
+            self.assertEqual(switched, [(1, 1)])
+            self.assertEqual(tmdb_called, [])
+            self.assertTrue(player._done)
+        finally:
+            self._restore(saved)
+
+    def test_original_first_priority_starts_lookup_during_stabilization(self):
+        service, kodiio, saved = self._import_service()
+        try:
+            kodiio.load_preferences = lambda: {
+                "enabled": True,
+                "avoid_commentary": True,
+                "avoid_ad": True,
+                "prefer_quality": False,
+                "notify": False,
+                "notify_mode": "off",
+                "use_tmdb": True,
+                "tmdb_apikey": "",
+                "show_rule_fallback": True,
+                "priorities": [{"slot": 1, "code": "original", "custom": ""}],
+                "trailer_mode": "leave",
+                "trailer_language": "eng",
+                "trailer_custom": "",
+                "extra_mode": "leave",
+                "extra_language": "eng",
+                "extra_custom": "",
+            }
+            kodiio.show_rules_path = lambda: ""
+            kodiio.language_cache_path = lambda: ""
+            kodiio.video_player_id = lambda: 1
+            kodiio.playing_info = lambda _pid: {
+                "mediatype": "movie",
+                "title": "Parasite",
+                "path": "/movies/Parasite.mkv",
+                "helper_hints": ["ko"],
+            }
+            streams = [stream(0, "eng", default=True), stream(1, "kor", channels=6)]
+            kodiio.audio_state = lambda _pid: (streams, streams[0])
+            kodiio.tmdb_credentials = lambda _key: ("", [])
+
+            player = service.AudioEnforcer()
+            player.onPlayBackStarted()
+            player.tick()
+            # Before STABLE_SECONDS elapses, lookup should already be started
+            self.assertIsNotNone(player._lookup)
+            self.assertFalse(player._done)
         finally:
             self._restore(saved)
 

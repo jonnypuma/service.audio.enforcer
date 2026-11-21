@@ -177,20 +177,39 @@ class LanguageCache(object):
         self.path = path
         self.now = now or time.time
         self.data = {}
+        self._stat = None
         self._load()
 
+    def _file_stat(self):
+        if not self.path:
+            return None
+        try:
+            st = os.stat(self.path)
+            return (st.st_mtime, st.st_size)
+        except OSError:
+            return None
+
     def _load(self):
-        if not self.path or not os.path.isfile(self.path):
+        stat = self._file_stat()
+        self._stat = stat
+        if stat is None:
+            self.data = {}
             return
         try:
             with open(self.path, "r", encoding="utf-8") as handle:
                 data = json.load(handle)
         except (OSError, ValueError):
+            self.data = {}
             return
-        if isinstance(data, dict):
-            self.data = data
+        self.data = data if isinstance(data, dict) else {}
+
+    def refresh(self):
+        """Reload from disk only when the cache file was created, modified, or removed."""
+        if self._file_stat() != self._stat:
+            self._load()
 
     def get(self, keys):
+        self.refresh()
         now = self.now()
         for key in keys or []:
             row = self.data.get(key)
@@ -244,6 +263,7 @@ class LanguageCache(object):
                     json.dump(self.data, handle, ensure_ascii=False, indent=2)
                     handle.write("\n")
                 os.replace(temporary, self.path)
+                self._stat = self._file_stat()
             except Exception:
                 try:
                     os.remove(temporary)
@@ -621,4 +641,5 @@ def resolve_original(
         return choose_original(local, local_source, helper, helper_source)
     if local:
         return local, local_source
-    return search_original(info, api_key, db_paths, cache, opener=opener)
+    # Helper databases were already checked by lookup_helper above.
+    return search_original(info, api_key, [], cache, opener=opener)

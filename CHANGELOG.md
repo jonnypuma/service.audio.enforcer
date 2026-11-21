@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 1.2.0
+
+- Skipped original-language lookups when an earlier priority or show rule already matches a track
+- Overlapped original-language lookup with stream stabilization when `Original language` is the first priority
+- Eliminated duplicate SQLite scans of TheMovieDB Helper's `ItemDetails.db` on lookup misses
+- Reused `LanguageCache` (with `mtime` refresh) and cached TMDB credentials in memory until settings change
+- Included `iscommentary`, `isvisualimpaired`, and `bitrate` in stream-stability signatures
+- Added `.gitignore` and untracked `__pycache__/*.pyc` files
+
 ## Version 1.1.0
 
 - Fixed hardcoded local `RunScript` path in settings and localized priority dropdown labels
