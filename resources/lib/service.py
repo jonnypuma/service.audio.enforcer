@@ -480,7 +480,8 @@ class AudioEnforcer(xbmc.Player):
         kodiio.log("{0} priority {1} {2}: {3}{4}".format(
             prefix, pref.get("slot") or 0, pref.get("label") or "", describe_stream(stream), rule
         ))
-        kodiio.notify(selection_message(pref, stream), changed=changed, mode=prefs.get("notify_mode"))
+        if not _is_live_tv(info):
+            kodiio.notify(selection_message(pref, stream), changed=changed, mode=prefs.get("notify_mode"))
 
     def _give_up(self, message):
         self._done = True
@@ -513,13 +514,28 @@ def _source_name(source):
     }.get(source, source or "lookup")
 
 
+def _is_live_tv(info):
+    from paths import is_live_tv_path
+
+    info = info or {}
+    if info.get("livetv"):
+        return True
+    if (info.get("mediatype") or "").lower() == "channel":
+        return True
+    if is_live_tv_path(info.get("path")):
+        return True
+    return kodiio.is_live_tv()
+
+
 def _identified(info):
-    """True once a title is known, or the path is already a trailer or extra."""
-    from paths import is_extra_path, is_trailer_path
+    """True once a title is known, or the path is already a trailer, extra, or live TV."""
+    from paths import is_extra_path, is_live_tv_path, is_trailer_path
 
     info = info or {}
     path = info.get("path") or ""
-    if is_trailer_path(path) or is_extra_path(path):
+    if is_trailer_path(path) or is_extra_path(path) or is_live_tv_path(path):
+        return True
+    if info.get("livetv") or (info.get("mediatype") or "").lower() == "channel":
         return True
     return bool(info.get("showtitle") or info.get("title") or info.get("tmdb") or info.get("imdb"))
 

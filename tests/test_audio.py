@@ -25,7 +25,7 @@ from languages import (
     priority_value,
     spec_from_text,
 )
-from paths import is_extra_path, is_trailer_path, suggested_name, title_match, year_from_parents
+from paths import is_extra_path, is_live_tv_path, is_trailer_path, suggested_name, title_match, year_from_parents
 from rules import canonicalize_action, load_rules, match_rule, playback_plan, save_rules, upsert_rule
 from tmdb import (
     LanguageCache,
@@ -212,6 +212,9 @@ class RuleTests(unittest.TestCase):
         self.assertTrue(is_extra_path("/films/extras/intro.mkv"))
         self.assertTrue(is_extra_path("/films/Behind the Scenes.mkv"))
         self.assertTrue(is_extra_path("/films/deleted scene.mkv"))
+        self.assertTrue(is_live_tv_path("pvr://channels/tv/All channels/pvr.iptvsimple_1.pvr"))
+        self.assertFalse(is_live_tv_path("pvr://recordings/tv/active/Show.pvr"))
+        self.assertFalse(is_live_tv_path("/films/Movie.mkv"))
         self.assertEqual(year_from_parents(r"D:\shows\Dark (2017)\Season 1\e.mkv"), "2017")
 
     def test_episode_title_is_not_a_candidate(self):
@@ -363,6 +366,16 @@ class IdentifyTests(unittest.TestCase):
         self.assertEqual(merged["tmdb"], "603")
         self.assertEqual(merged["title"], "The Matrix")
         self.assertEqual(merged["original_hints"], ["en", "ja"])
+
+    def test_live_tv_detection_from_channel_path_or_label(self):
+        by_type = normalize_info({"type": "channel", "title": "News", "file": ""})
+        self.assertTrue(by_type["livetv"])
+        by_path = normalize_info({"title": "News", "file": "pvr://channels/tv/All/1.pvr"})
+        self.assertTrue(by_path["livetv"])
+        by_label = normalize_info({"title": "News", "file": "http://example/live.m3u8"}, {"livetv": True})
+        self.assertTrue(by_label["livetv"])
+        recording = normalize_info({"type": "movie", "title": "Film", "file": "pvr://recordings/tv/Film.pvr"})
+        self.assertFalse(recording["livetv"])
 
 
 class TmdbTests(unittest.TestCase):
@@ -786,7 +799,7 @@ class PackageTests(unittest.TestCase):
     def test_addon_manifest(self):
         addon = ET.parse(os.path.join(ROOT, "addon.xml")).getroot()
         self.assertEqual(addon.attrib["id"], "service.audio.enforcer")
-        self.assertEqual(addon.attrib["version"], "1.2.0")
+        self.assertEqual(addon.attrib["version"], "1.2.1")
         self.assertEqual(addon.attrib["name"], "Audio Enforcer")
         points = [node.attrib["point"] for node in addon.findall("extension")]
         self.assertEqual(points[0], "xbmc.service")
@@ -1118,6 +1131,56 @@ class ServiceTests(unittest.TestCase):
             # Before STABLE_SECONDS elapses, lookup should already be started
             self.assertIsNotNone(player._lookup)
             self.assertFalse(player._done)
+        finally:
+            self._restore(saved)
+
+    def test_live_tv_switches_audio_without_toast(self):
+        service, kodiio, saved = self._import_service()
+        try:
+            switched = []
+            notified = []
+            kodiio.load_preferences = lambda: {
+                "enabled": True,
+                "avoid_commentary": True,
+                "avoid_ad": True,
+                "prefer_quality": False,
+                "notify": True,
+                "notify_mode": "always",
+                "use_tmdb": False,
+                "tmdb_apikey": "",
+                "show_rule_fallback": True,
+                "priorities": [{"slot": 1, "code": "eng", "custom": ""}],
+                "trailer_mode": "leave",
+                "trailer_language": "eng",
+                "trailer_custom": "",
+                "extra_mode": "leave",
+                "extra_language": "eng",
+                "extra_custom": "",
+            }
+            kodiio.show_rules_path = lambda: ""
+            kodiio.video_player_id = lambda: 1
+            kodiio.is_live_tv = lambda: False
+            kodiio.playing_info = lambda _pid: {
+                "mediatype": "channel",
+                "title": "BBC One",
+                "path": "pvr://channels/tv/All/1.pvr",
+                "livetv": True,
+            }
+            streams = [stream(0, "ger", default=True), stream(1, "eng", channels=2)]
+            kodiio.audio_state = lambda _pid: (streams, streams[0])
+            kodiio.set_audio_stream = lambda pid, idx: (switched.append((pid, idx)) or True)
+            kodiio.notify = lambda msg, changed=True, mode=None: notified.append((msg, changed, mode))
+
+            player = service.AudioEnforcer()
+            player._file = "pvr://channels/tv/All/1.pvr"
+            player.onPlayBackStarted()
+            player.tick()
+            player._sig_since -= service.STABLE_SECONDS + 0.5
+            player.tick()
+
+            self.assertEqual(switched, [(1, 1)])
+            self.assertEqual(notified, [])
+            self.assertTrue(player._done)
         finally:
             self._restore(saved)
 

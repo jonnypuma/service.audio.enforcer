@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.2.1
+
+- Suppressed on-screen toast notifications during Live TV playback (audio track selection and logging still run as normal)
+
 ## Version 1.2.0
 
 - Skipped original-language lookups when an earlier priority or show rule already matches a track

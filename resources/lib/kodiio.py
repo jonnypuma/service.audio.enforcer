@@ -413,6 +413,16 @@ def _label(name):
         return ""
 
 
+def is_live_tv():
+    """True when Kodi reports that Live TV is currently playing."""
+    try:
+        if xbmc.getCondVisibility("VideoPlayer.Content(livetv)"):
+            return True
+    except Exception:
+        pass
+    return bool(_label("VideoPlayer.ChannelName"))
+
+
 def player_labels():
     """Info labels that scrapers and TheMovieDB Helper may have set."""
     hints = [_label(name) for name in _FILE_ORIGINAL_LABELS]
@@ -425,6 +435,7 @@ def player_labels():
         "year": _label("VideoPlayer.Year"),
         "premiered": _label("VideoPlayer.Premiered") or _label("VideoPlayer.Year"),
         "imdbnumber": _label("VideoPlayer.IMDBNumber"),
+        "livetv": is_live_tv(),
         "original_language": [value for value in hints if value],
         "helper_language": [value for value in helper_hints if value],
     }

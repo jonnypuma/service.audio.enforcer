@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Turn Kodi player and library fields into one plain item description."""
 
-from paths import year_from_parents
+from paths import is_live_tv_path, year_from_parents
 
 _EMPTY = {"", "none", "null", "unknown", "-1", "0"}
 
@@ -145,6 +145,7 @@ def normalize_info(item, labels=None, show=None):
         "imdb": imdb,
         "library_id": library_id,
         "path": path,
+        "livetv": bool(labels.get("livetv")) or mediatype == "channel" or is_live_tv_path(path),
         "original_hints": _hint_list(labels.get("original_language")),
         "helper_hints": _hint_list(labels.get("helper_language")),
     }
@@ -157,6 +158,7 @@ def merge_info(current, update):
     for key in ("mediatype", "title", "showtitle", "year", "tmdb", "imdb", "library_id", "path"):
         if update.get(key) and not current.get(key):
             current[key] = update[key]
+    current["livetv"] = bool(current.get("livetv") or update.get("livetv"))
     for key in ("original_hints", "helper_hints"):
         hints = list(current.get(key) or [])
         for hint in update.get(key) or []:

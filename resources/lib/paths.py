@@ -62,6 +62,10 @@ def loose_title(text):
     return " ".join(path_words(text))
 
 
+def is_live_tv_path(path):
+    return (path or "").strip().lower().startswith("pvr://channels/")
+
+
 def is_trailer_path(path):
     segments = path_segments(path)
     if any(segment.lower() in ("trailer", "trailers") for segment in segments[:-1]):

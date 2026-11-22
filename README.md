@@ -11,7 +11,7 @@ On every video playback start:
 1. Reads the audio tracks Kodi has found (if there is only one track, it is left as is).
 2. Walks your list from priority 1 to priority 5.
 3. Selects the first priority that has an allowed track.
-4. Shows a short message naming that track (when **Show the chosen audio** is set to **Only when changed** or **Always**).
+4. Shows a short message naming that track (when **Show the chosen audio** is set to **Only when changed** or **Always**; suppressed during Live TV).
 
 The choice is made once for that playback. Music plays as it is. When no priority has an allowed track, the track already playing stays on. The same lines are written to `kodi.log`, each beginning with `Audio Enforcer`.
 
